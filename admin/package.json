@@ -9,6 +9,7 @@
     },
     "dependencies": {
         "express": "^4.21.0",
-        "dockerode": "^4.0.4"
+        "dockerode": "^4.0.4",
+        "multer": "^1.4.5-lts.1"
     }
 }

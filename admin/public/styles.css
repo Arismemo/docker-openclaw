@@ -455,4 +455,206 @@ tbody tr:last-child td {
   .modal-wide {
     width: 95vw;
   }
+
+  .skills-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .skills-search .search-box {
+    flex-direction: column;
+  }
+}
+
+/* ── 导航 ────────────────────────────── */
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.nav-link {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.nav-link:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.nav-link.active {
+  color: var(--primary);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+/* ── 技能市场 ──────────────────────────── */
+
+.skills-search {
+  margin-bottom: 24px;
+}
+
+.skills-search .search-box {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.skills-search .search-box input {
+  flex: 1;
+  padding: 12px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  transition: border 0.2s;
+}
+
+.skills-search .search-box input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.search-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.tab {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.tab.active {
+  color: var(--primary);
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.skill-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.skill-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.1);
+}
+
+.skill-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.skill-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.skill-version {
+  font-size: 12px;
+  color: var(--text-dim);
+  background: var(--bg);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.skill-desc {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  flex: 1;
+  margin-bottom: 14px;
+  /* 最多3行 */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.skill-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.skill-time {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.skill-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.skill-badge.status-ready {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+}
+
+.skill-badge.status-missing {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning);
+}
+
+.skill-badge.status-disabled {
+  background: rgba(122, 131, 152, 0.15);
+  color: var(--text-dim);
+}
+
+.skill-card.status-ready {
+  border-left: 3px solid var(--success);
+}
+
+.skill-card.status-missing {
+  border-left: 3px solid var(--warning);
+}
+
+.skill-source,
+.skill-clients {
+  font-size: 11px;
+  color: var(--text-dim);
 }

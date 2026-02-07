@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>技能市场 - OpenClaw 管理面板</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- 顶部导航 -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="header-brand">🦞 <span>OpenClaw</span> 管理面板</div>
+            <nav class="header-nav">
+                <a href="/" class="nav-link">📊 总览</a>
+                <a href="/skills.html" class="nav-link active">🧩 技能市场</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- 搜索栏 -->
+        <section class="skills-search">
+            <div class="search-box">
+                <input type="text" id="skill-search" placeholder="搜索技能…（如 image、pdf、research）" autocomplete="off">
+                <button class="btn btn-primary" onclick="searchSkills()">🔍 搜索</button>
+            </div>
+            <div class="search-tabs">
+                <button class="tab active" onclick="switchTab('explore', this)">🔥 热门推荐</button>
+                <button class="tab" onclick="switchTab('installed', this)">📦 已安装</button>
+            </div>
+        </section>
+
+        <!-- 技能卡片网格 -->
+        <section class="skills-grid" id="skills-grid">
+            <div class="empty-state">加载中…</div>
+        </section>
+    </main>
+
+    <!-- 安装确认弹窗 -->
+    <div class="modal-overlay" id="modal-install">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="install-title">安装技能</h3>
+                <button class="btn-close" onclick="closeModal('modal-install')">✕</button>
+            </div>
+            <div class="form-group">
+                <label>技能</label>
+                <input type="text" id="install-slug" readonly>
+            </div>
+            <div class="form-group">
+                <label>目标客户</label>
+                <select id="install-target"></select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeModal('modal-install')">取消</button>
+                <button class="btn btn-primary" id="btn-install" onclick="confirmInstall()">安装</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container" id="toasts"></div>
+
+    <script>
+        // ── 认证 ──────────────────────────
+        async function api(path, opts = {}) {
+            const res = await fetch('/api' + path, {
+                headers: { 'Content-Type': 'application/json', ...opts.headers },
+                ...opts,
+            });
+            if (res.status === 401) {
+                location.reload();
+                throw new Error('认证失败');
+            }
+            if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+            return res.json();
+        }
+
+        // ── 状态 ──────────────────────────
+        let currentTab = 'explore';
+        let clients = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadExplore();
+            loadClients();
+            // 回车搜索
+            document.getElementById('skill-search').addEventListener('keydown', e => {
+                if (e.key === 'Enter') searchSkills();
+            });
+        });
+
+        // ── 加载客户列表（用于安装时选择） ──
+        async function loadClients() {
+            try {
+                clients = await api('/clients');
+            } catch { }
+        }
+
+        // ── 浏览热门 ──────────────────────
+        async function loadExplore() {
+            const grid = document.getElementById('skills-grid');
+            grid.innerHTML = '<div class="empty-state">🔄 正在从 ClawHub 注册表加载…</div>';
+            try {
+                const skills = await api('/skills/explore?limit=30');
+                renderSkillCards(skills, 'explore');
+            } catch (e) {
+                grid.innerHTML = `<div class="empty-state">❌ 加载失败: ${e.message}</div>`;
+            }
+        }
+
+        // ── 搜索 ──────────────────────────
+        async function searchSkills() {
+            const q = document.getElementById('skill-search').value.trim();
+            if (!q) { loadExplore(); return; }
+            const grid = document.getElementById('skills-grid');
+            grid.innerHTML = '<div class="empty-state">🔍 搜索中…</div>';
+            // 激活热门 tab 样式
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            try {
+                const skills = await api(`/skills/search?q=${encodeURIComponent(q)}`);
+                if (skills.length === 0) {
+                    grid.innerHTML = `<div class="empty-state">未找到与"${q}"相关的技能</div>`;
+                } else {
+                    renderSkillCards(skills, 'search');
+                }
+            } catch (e) {
+                grid.innerHTML = `<div class="empty-state">❌ 搜索失败: ${e.message}</div>`;
+            }
+        }
+
+        // ── 已安装 ────────────────────────
+        async function loadInstalled() {
+            const grid = document.getElementById('skills-grid');
+            grid.innerHTML = '<div class="empty-state">🔄 正在读取客户技能数据…</div>';
+            try {
+                // 从所有客户汇总 skill
+                const allSkills = [];
+                for (const c of clients) {
+                    if (!c.running) continue;
+                    try {
+                        const data = await api(`/clients/${c.name}/skills`);
+                        data.skills.forEach(s => {
+                            s.client = c.name;
+                            allSkills.push(s);
+                        });
+                    } catch { }
+                }
+                if (allSkills.length === 0) {
+                    grid.innerHTML = '<div class="empty-state">无运行中客户或暂无技能数据</div>';
+                    return;
+                }
+                renderInstalledSkills(allSkills);
+            } catch (e) {
+                grid.innerHTML = `<div class="empty-state">❌ 加载失败: ${e.message}</div>`;
+            }
+        }
+
+        // ── 渲染注册表技能卡片 ────────────
+        function renderSkillCards(skills, source) {
+            const grid = document.getElementById('skills-grid');
+            if (skills.length === 0) {
+                grid.innerHTML = '<div class="empty-state">暂无技能</div>';
+                return;
+            }
+            grid.innerHTML = skills.map(s => `
+            <div class="skill-card">
+                <div class="skill-card-header">
+                    <div class="skill-name">${escHtml(s.slug)}</div>
+                    <span class="skill-version">${escHtml(s.version)}</span>
+                </div>
+                <div class="skill-desc">${escHtml(s.description || '')}</div>
+                <div class="skill-card-footer">
+                    ${s.time ? `<span class="skill-time">${escHtml(s.time)}</span>` : ''}
+                    <button class="btn btn-primary btn-sm" onclick="showInstall('${escAttr(s.slug)}')">安装</button>
+                </div>
+            </div>
+        `).join('');
+        }
+
+        // ── 渲染已安装技能表格 ────────────
+        function renderInstalledSkills(skills) {
+            const grid = document.getElementById('skills-grid');
+            // 按状态分组：ready 在前
+            const ready = skills.filter(s => s.status === 'ready');
+            const missing = skills.filter(s => s.status === 'missing');
+            const disabled = skills.filter(s => s.status === 'disabled');
+
+            // 去重（同名 skill 在不同客户中只显示一次，但标注客户）
+            const seen = new Map();
+            skills.forEach(s => {
+                const key = s.slug;
+                if (!seen.has(key)) seen.set(key, { ...s, clients: [s.client] });
+                else seen.get(key).clients.push(s.client);
+            });
+
+            const unique = [...seen.values()];
+            grid.innerHTML = unique.map(s => {
+                const statusIcon = s.status === 'ready' ? '✅' : s.status === 'missing' ? '⚠️' : '⏸️';
+                const statusClass = s.status === 'ready' ? 'status-ready' : s.status === 'missing' ? 'status-missing' : 'status-disabled';
+                return `
+            <div class="skill-card ${statusClass}">
+                <div class="skill-card-header">
+                    <div class="skill-name">${s.icon || '📦'} ${escHtml(s.slug)}</div>
+                    <span class="skill-badge ${statusClass}">${statusIcon} ${s.status}</span>
+                </div>
+                <div class="skill-desc">${escHtml(s.description || '')}</div>
+                <div class="skill-card-footer">
+                    <span class="skill-source">${escHtml(s.source || '')}</span>
+                    <span class="skill-clients">${s.clients.map(c => c).join(', ')}</span>
+                </div>
+            </div>`;
+            }).join('');
+        }
+
+        // ── Tab 切换 ──────────────────────
+        function switchTab(tab, el) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            if (tab === 'explore') loadExplore();
+            else if (tab === 'installed') loadInstalled();
+        }
+
+        // ── 安装弹窗 ──────────────────────
+        function showInstall(slug) {
+            document.getElementById('install-slug').value = slug;
+            document.getElementById('install-title').textContent = `安装 ${slug}`;
+            const select = document.getElementById('install-target');
+            select.innerHTML = clients
+                .filter(c => c.running)
+                .map(c => `<option value="${c.name}">${c.name}</option>`)
+                .join('');
+            if (select.options.length === 0) {
+                select.innerHTML = '<option disabled>无运行中的客户</option>';
+            }
+            showModal('modal-install');
+        }
+
+        async function confirmInstall() {
+            const slug = document.getElementById('install-slug').value;
+            const target = document.getElementById('install-target').value;
+            if (!slug || !target) return;
+
+            const btn = document.getElementById('btn-install');
+            btn.disabled = true;
+            btn.textContent = '安装中…';
+
+            try {
+                const result = await api(`/clients/${target}/skills/install`, {
+                    method: 'POST',
+                    body: JSON.stringify({ slug }),
+                });
+                showToast(`✅ ${slug} 已安装到 ${target}`, 'success');
+                closeModal('modal-install');
+            } catch (e) {
+                showToast(`❌ 安装失败: ${e.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '安装';
+            }
+        }
+
+        // ── 工具函数 ──────────────────────
+        function showModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        function showToast(msg, type = 'success') {
+            const c = document.getElementById('toasts');
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            t.textContent = msg;
+            c.appendChild(t);
+            setTimeout(() => t.remove(), 4000);
+        }
+
+        function escHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        function escAttr(s) {
+            return s.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+
+</html>

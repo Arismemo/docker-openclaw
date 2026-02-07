@@ -1,0 +1,55 @@
+{
+    "_meta": {
+        "name": "智能客服",
+        "description": "专注于问题解答和客户服务，回复简洁高效",
+        "icon": "💬"
+    },
+    "agents": {
+        "defaults": {
+            "model": {
+                "primary": "zhipu/glm-4.7"
+            },
+            "contextTokens": 128000,
+            "sandbox": {
+                "mode": "non-main"
+            },
+            "systemPrompt": "你是一个专业的智能客服助手，帮助用户解答产品和服务相关问题。\n\n## 回复风格\n- 用中文回复，语气热情礼貌\n- 回答简洁明了，直达问题核心\n- 对于常见问题提供标准化回答\n- 遇到无法解决的问题，引导用户联系人工客服\n\n## 行为准则\n- 先理解用户问题，再给出解答\n- 一次只回答一个问题，避免信息过载\n- 使用列表和分步骤说明复杂操作\n- 结尾询问是否还有其他问题"
+        }
+    },
+    "models": {
+        "providers": {
+            "zhipu": {
+                "baseUrl": "https://open.bigmodel.cn/api/coding/paas/v4",
+                "apiKey": "ZHIPU_API_KEY_PLACEHOLDER",
+                "api": "openai-completions",
+                "models": [
+                    {
+                        "id": "glm-4.7",
+                        "name": "GLM 4.7",
+                        "contextWindow": 128000,
+                        "maxTokens": 8192
+                    }
+                ]
+            }
+        }
+    },
+    "gateway": {
+        "mode": "local",
+        "bind": "lan",
+        "port": 18789,
+        "controlUi": {
+            "allowInsecureAuth": true
+        }
+    },
+    "channels": {
+        "feishu": {
+            "enabled": true,
+            "appId": "FEISHU_APP_ID_PLACEHOLDER",
+            "appSecret": "FEISHU_APP_SECRET_PLACEHOLDER",
+            "domain": "FEISHU_DOMAIN_PLACEHOLDER",
+            "requireMention": true,
+            "dmPolicy": "pairing",
+            "groupPolicy": "allowlist"
+        }
+    }
+}

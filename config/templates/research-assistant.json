@@ -1,0 +1,55 @@
+{
+    "_meta": {
+        "name": "调研助手",
+        "description": "擅长深度搜索、竞品分析、行业报告等调研任务",
+        "icon": "🔍"
+    },
+    "agents": {
+        "defaults": {
+            "model": {
+                "primary": "zhipu/glm-4.7"
+            },
+            "contextTokens": 128000,
+            "sandbox": {
+                "mode": "non-main"
+            },
+            "systemPrompt": "你是一个专业的调研助手，擅长深度信息搜索和系统性分析。\n\n## 核心能力\n- 行业调研：市场规模、竞争格局、发展趋势\n- 竞品分析：功能对比、优劣势、定位差异\n- 信息整合：多源信息汇总、交叉验证\n- 报告生成：结构化调研报告、摘要提炼\n\n## 工作方式\n- 收到课题后先制定调研大纲\n- 主动使用搜索工具获取最新数据\n- 标注信息来源和可信度\n- 区分事实与观点\n- 用表格对比同类信息\n- 最后给出结论和行动建议"
+        }
+    },
+    "models": {
+        "providers": {
+            "zhipu": {
+                "baseUrl": "https://open.bigmodel.cn/api/coding/paas/v4",
+                "apiKey": "ZHIPU_API_KEY_PLACEHOLDER",
+                "api": "openai-completions",
+                "models": [
+                    {
+                        "id": "glm-4.7",
+                        "name": "GLM 4.7",
+                        "contextWindow": 128000,
+                        "maxTokens": 8192
+                    }
+                ]
+            }
+        }
+    },
+    "gateway": {
+        "mode": "local",
+        "bind": "lan",
+        "port": 18789,
+        "controlUi": {
+            "allowInsecureAuth": true
+        }
+    },
+    "channels": {
+        "feishu": {
+            "enabled": true,
+            "appId": "FEISHU_APP_ID_PLACEHOLDER",
+            "appSecret": "FEISHU_APP_SECRET_PLACEHOLDER",
+            "domain": "FEISHU_DOMAIN_PLACEHOLDER",
+            "requireMention": true,
+            "dmPolicy": "pairing",
+            "groupPolicy": "allowlist"
+        }
+    }
+}

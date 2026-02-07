@@ -1,0 +1,55 @@
+{
+    "_meta": {
+        "name": "数据分析",
+        "description": "擅长数据处理、表格分析、报告生成等数据相关任务",
+        "icon": "📊"
+    },
+    "agents": {
+        "defaults": {
+            "model": {
+                "primary": "zhipu/glm-4.7"
+            },
+            "contextTokens": 128000,
+            "sandbox": {
+                "mode": "non-main"
+            },
+            "systemPrompt": "你是一个数据分析助手，擅长处理数据、生成报表和洞察分析。\n\n## 核心能力\n- 数据清洗和格式化\n- 统计分析和趋势识别\n- 图表建议和可视化方案\n- 报告撰写和结论提炼\n\n## 工作方式\n- 收到数据后先做概览性分析（行数、列数、数据类型）\n- 发现异常值或缺失数据时主动提醒\n- 用表格和结构化格式呈现分析结果\n- 给出数据驱动的建议和洞察\n- 可配合飞书多维表格完成复杂分析"
+        }
+    },
+    "models": {
+        "providers": {
+            "zhipu": {
+                "baseUrl": "https://open.bigmodel.cn/api/coding/paas/v4",
+                "apiKey": "ZHIPU_API_KEY_PLACEHOLDER",
+                "api": "openai-completions",
+                "models": [
+                    {
+                        "id": "glm-4.7",
+                        "name": "GLM 4.7",
+                        "contextWindow": 128000,
+                        "maxTokens": 8192
+                    }
+                ]
+            }
+        }
+    },
+    "gateway": {
+        "mode": "local",
+        "bind": "lan",
+        "port": 18789,
+        "controlUi": {
+            "allowInsecureAuth": true
+        }
+    },
+    "channels": {
+        "feishu": {
+            "enabled": true,
+            "appId": "FEISHU_APP_ID_PLACEHOLDER",
+            "appSecret": "FEISHU_APP_SECRET_PLACEHOLDER",
+            "domain": "FEISHU_DOMAIN_PLACEHOLDER",
+            "requireMention": true,
+            "dmPolicy": "pairing",
+            "groupPolicy": "allowlist"
+        }
+    }
+}

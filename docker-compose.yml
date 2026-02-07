@@ -25,6 +25,10 @@ services:
       - OPENCLAW_IMAGE=openclaw:local
       - CLIENTS_DIR=/app/clients
       - CONFIG_TEMPLATE=/app/config/openclaw.json
+      - TEMPLATES_DIR=/app/config/templates
+      - ADMIN_USER=${ADMIN_USER:-admin}
+      - ADMIN_PASS=${ADMIN_PASS}
+      - MODELS_FILE=/app/config/models.json
     restart: unless-stopped
 
   # OpenClaw 基础镜像构建（仅用于 build，不运行）

@@ -1,0 +1,35 @@
+[
+    {
+        "id": "zhipu-glm47",
+        "name": "智谱 GLM-4.7",
+        "provider": "zhipu",
+        "modelId": "glm-4.7",
+        "baseUrl": "https://open.bigmodel.cn/api/coding/paas/v4",
+        "api": "openai-completions",
+        "contextWindow": 128000,
+        "maxTokens": 8192,
+        "envKey": "ZHIPU_API_KEY"
+    },
+    {
+        "id": "deepseek-chat",
+        "name": "DeepSeek Chat",
+        "provider": "deepseek",
+        "modelId": "deepseek-chat",
+        "baseUrl": "https://api.deepseek.com/v1",
+        "api": "openai-completions",
+        "contextWindow": 64000,
+        "maxTokens": 8192,
+        "envKey": "DEEPSEEK_API_KEY"
+    },
+    {
+        "id": "openai-gpt4o",
+        "name": "OpenAI GPT-4o",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "baseUrl": "https://api.openai.com/v1",
+        "api": "openai-completions",
+        "contextWindow": 128000,
+        "maxTokens": 16384,
+        "envKey": "OPENAI_API_KEY"
+    }
+]
