@@ -656,8 +656,8 @@ app.post('/api/clients/import', upload.single('file'), async (req, res) => {
       ? path.join(tmpDir, extracted[0])
       : tmpDir;
 
-    // 移动到正式目录
-    await fs.rename(srcDir, clientDir);
+    // 复制到正式目录（跨文件系统不能用 rename）
+    await fs.cp(srcDir, clientDir, { recursive: true });
 
     // 更新 .env 中的 PORT
     const envFile = path.join(clientDir, '.env');
