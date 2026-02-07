@@ -1,0 +1,38 @@
+# ============================================================
+# OpenClaw 多客户管理平台 - Docker Compose
+# 使用方式：
+#   1. docker build -t openclaw:local .     # 构建 OpenClaw 基础镜像
+#   2. docker compose up -d                 # 启动管理面板
+#   3. 访问 http://localhost:3000           # 通过 Web 面板管理客户
+# ============================================================
+
+services:
+  # 管理面板（常驻服务）
+  admin:
+    build: ./admin
+    container_name: openclaw-admin
+    ports:
+      - "3001:3000"
+    volumes:
+      # Docker 控制权（用于动态创建/管理客户容器）
+      - /var/run/docker.sock:/var/run/docker.sock
+      # 客户数据目录
+      - ./clients:/app/clients
+      # 配置模板
+      - ./config:/app/config
+    environment:
+      - HOST_PROJECT_DIR=${PWD}
+      - OPENCLAW_IMAGE=openclaw:local
+      - CLIENTS_DIR=/app/clients
+      - CONFIG_TEMPLATE=/app/config/openclaw.json
+    restart: unless-stopped
+
+  # OpenClaw 基础镜像构建（仅用于 build，不运行）
+  openclaw-base:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: openclaw:local
+    profiles:
+      - build
+    command: ["echo", "✅ OpenClaw 基础镜像构建完成"]

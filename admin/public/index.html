@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenClaw 管理面板</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <header class="header">
+    <div class="header-brand">🦞 <span>OpenClaw</span> 管理面板</div>
+  </header>
+
+  <main class="main">
+    <!-- 统计卡片 -->
+    <section class="stats" id="stats">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-label">总客户</div>
+      </div>
+      <div class="stat-card stat-running">
+        <div class="stat-value" id="stat-running">—</div>
+        <div class="stat-label">运行中</div>
+      </div>
+      <div class="stat-card stat-stopped">
+        <div class="stat-value" id="stat-stopped">—</div>
+        <div class="stat-label">已停止</div>
+      </div>
+      <button class="btn btn-primary" onclick="showCreateModal()">+ 创建客户</button>
+    </section>
+
+    <!-- 客户列表 -->
+    <section class="client-list" id="client-list">
+      <div class="section-header">
+        <h2>客户列表</h2>
+        <button class="btn btn-ghost" onclick="loadClients()">↻ 刷新</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>状态</th>
+              <th>客户名称</th>
+              <th>端口</th>
+              <th>飞书域名</th>
+              <th>模型 Key</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="clients-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="empty-state" style="display:none">
+          <p>暂无客户，点击「创建客户」开始</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 创建/编辑客户弹窗 -->
+  <div class="modal-overlay" id="modal-create" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="modal-title">创建新客户</h3>
+        <button class="btn-close" onclick="hideModal('modal-create')">✕</button>
+      </div>
+      <form id="form-client" onsubmit="submitClient(event)">
+        <input type="hidden" id="edit-mode" value="">
+        <div class="form-group">
+          <label>客户名称</label>
+          <input type="text" id="f-name" placeholder="如 acme-corp" pattern="^[a-z0-9][a-z0-9-]*$" required>
+          <small>仅小写字母、数字、连字符</small>
+        </div>
+        <div class="form-group">
+          <label>端口号</label>
+          <input type="number" id="f-port" placeholder="18790" min="1024" max="65535" required>
+        </div>
+        <div class="form-divider">飞书配置</div>
+        <div class="form-group">
+          <label>App ID</label>
+          <input type="text" id="f-feishu-id" placeholder="cli_xxxxxx">
+        </div>
+        <div class="form-group">
+          <label>App Secret</label>
+          <input type="password" id="f-feishu-secret" placeholder="飞书应用密钥">
+        </div>
+        <div class="form-group">
+          <label>域名</label>
+          <select id="f-feishu-domain">
+            <option value="feishu">feishu（国内）</option>
+            <option value="lark">lark（国际）</option>
+          </select>
+        </div>
+        <div class="form-divider">AI 模型配置</div>
+        <div class="form-group">
+          <label>智谱 API Key</label>
+          <input type="password" id="f-zhipu-key" placeholder="API Key">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" onclick="hideModal('modal-create')">取消</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit">创建并启动</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 日志弹窗 -->
+  <div class="modal-overlay" id="modal-logs" onclick="closeModal(event)">
+    <div class="modal modal-wide" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="logs-title">日志</h3>
+        <button class="btn-close" onclick="closeLogs()">✕</button>
+      </div>
+      <pre class="log-viewer" id="log-content"></pre>
+    </div>
+  </div>
+
+  <!-- 提示消息 -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

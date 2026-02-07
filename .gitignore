@@ -1,0 +1,26 @@
+# 环境变量（包含敏感凭据）
+.env
+
+# 运行时数据（挂载目录）
+data/
+
+# 客户运行时数据
+clients/*/data/
+
+# Docker 数据
+.docker/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 日志
+*.log
+
+# Node
+node_modules/
