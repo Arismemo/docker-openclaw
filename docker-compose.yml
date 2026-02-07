@@ -20,6 +20,9 @@ services:
       - ./clients:/app/clients
       # 配置模板
       - ./config:/app/config
+      # 管理面板代码（开发模式，实时同步）
+      - ./admin/public:/app/public
+      - ./admin/server.js:/app/server.js
     environment:
       - HOST_PROJECT_DIR=${PWD}
       - OPENCLAW_IMAGE=openclaw:local
