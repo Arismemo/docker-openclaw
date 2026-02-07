@@ -298,15 +298,19 @@ function onModelChange() {
 
 // ── 导出 ──────────────────────────────────────────────────
 
-function exportClient(name) {
-    // 触发浏览器下载 tar.gz
-    const a = document.createElement('a');
-    a.href = `/api/clients/${name}/export`;
-    a.download = `${name}-export.tar.gz`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+async function exportClient(name) {
     toast(`正在导出 ${name}…`, 'success');
+    try {
+        const res = await fetch(`/api/clients/${name}/export`);
+        if (!res.ok) throw new Error('导出失败');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${name}-export.tar.gz`;
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch (e) { toast('导出失败：' + e.message, 'error'); }
 }
 
 // ── 导入 ──────────────────────────────────────────────────
