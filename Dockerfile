@@ -60,7 +60,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装 uv (Python 包管理器) → local-places / nano-banana-pro 技能
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+RUN curl -LsSf --retry 3 --retry-delay 5 --connect-timeout 30 https://astral.sh/uv/install.sh | sh \
     && ln -sf /root/.local/bin/uv /usr/local/bin/uv
 
 # 安装 pnpm
