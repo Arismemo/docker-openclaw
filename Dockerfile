@@ -91,6 +91,9 @@ COPY --chown=node:node config/openclaw.json /app/config/openclaw.json
 COPY --chown=node:node scripts/init.sh /app/scripts/init.sh
 RUN chmod +x /app/scripts/init.sh
 
+# 修复权限（pnpm link / npm install -g 可能以 root 修改了 /home/node）
+RUN chown -R node:node /home/node
+
 # 切换到非 root 用户
 USER node
 

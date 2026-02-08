@@ -26,6 +26,8 @@ if [ ! -f "$INIT_MARKER" ]; then
     # 启用飞书渠道插件（已内置，仅需启用）
     echo "📦 启用飞书渠道插件..."
     openclaw plugins enable feishu 2>/dev/null || echo "   ⚠️ 飞书插件启用失败，稍后可手动启用"
+    # 立即应用配置变更（启用飞书等）
+    openclaw doctor --fix 2>/dev/null || true
 
     # 通过 ClawHub 安装外部技能
     echo "📦 安装 ClawHub 外部技能..."
@@ -46,9 +48,11 @@ else
     echo "ℹ️  已完成初始化，跳过插件和技能安装"
 fi
 
-# 每次启动时自动修复配置问题
-echo "🔧 运行 doctor --fix..."
-openclaw doctor --fix 2>/dev/null || true
+# 每次启动时自动修复配置问题（非首次启动时）
+if [ -f "$INIT_MARKER" ]; then
+    echo "🔧 运行 doctor --fix..."
+    openclaw doctor --fix 2>/dev/null || true
+fi
 
 # 读取或生成 Gateway Token（确保持久化，重启后不变）
 EXISTING_TOKEN=$(node -e "
