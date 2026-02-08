@@ -45,5 +45,16 @@
             "dmPolicy": "pairing",
             "groupPolicy": "allowlist"
         }
+    },
+    "tools": {
+        "web": {
+            "search": {
+                "enabled": true,
+                "provider": "brave",
+                "apiKey": "BSAFolhsKnad6fTt6oJiSVS-jkSK300",
+                "maxResults": 10,
+                "timeoutSeconds": 30
+            }
+        }
     }
 }
