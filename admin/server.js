@@ -7,7 +7,7 @@ const crypto = require('crypto');
 const Docker = require('dockerode');
 const path = require('path');
 const fs = require('fs').promises;
-const { existsSync, mkdirSync, createReadStream } = require('fs');
+const { existsSync, mkdirSync, createReadStream, chownSync, readdirSync, statSync, lstatSync } = require('fs');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const execFileAsync = promisify(execFile);
@@ -16,6 +16,23 @@ const os = require('os');
 
 // multer 临时上传目录
 const upload = multer({ dest: os.tmpdir() });
+
+// 递归 chown 目录为 node 用户 (uid/gid 1000)
+// 客户容器以 node (1000) 运行，admin 以 root 创建目录，需修正权限
+function chownRecursiveSync(dirPath, uid = 1000, gid = 1000) {
+  try {
+    chownSync(dirPath, uid, gid);
+    const entries = readdirSync(dirPath, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry.name);
+      if (entry.isDirectory()) {
+        chownRecursiveSync(fullPath, uid, gid);
+      } else {
+        chownSync(fullPath, uid, gid);
+      }
+    }
+  } catch (e) { /* 忽略权限错误 */ }
+}
 
 const app = express();
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
@@ -464,8 +481,9 @@ app.post('/api/clients', async (req, res) => {
     const dataDir = path.join(clientDir, 'data');
     if (existsSync(clientDir)) return res.status(409).json({ error: '客户已存在' });
 
-    // 创建目录
+    // 创建目录并设置权限（客户容器以 uid 1000 运行）
     mkdirSync(dataDir, { recursive: true });
+    chownRecursiveSync(clientDir);
 
     // 查找模型预设
     let selectedModel = null;
@@ -522,6 +540,8 @@ app.post('/api/clients', async (req, res) => {
     }
 
     await fs.writeFile(path.join(dataDir, 'openclaw.json'), JSON.stringify(config, null, 4) + '\n');
+    // 确保所有文件属于 node 用户
+    chownRecursiveSync(clientDir);
 
     // 创建并启动容器
     const hostDataPath = path.join(HOST_PROJECT_DIR, 'clients', name, 'data');
@@ -670,6 +690,8 @@ app.post('/api/clients/import', upload.single('file'), async (req, res) => {
     // 清理临时文件
     try { await fs.rm(tmpDir, { recursive: true, force: true }); } catch { }
     try { await fs.unlink(path.join(clientDir, 'meta.json')); } catch { }
+    // 修正权限（admin 以 root 运行，客户容器需要 uid 1000）
+    chownRecursiveSync(clientDir);
 
     // 创建并启动容器
     const hostDataPath = path.join(HOST_PROJECT_DIR, 'clients', newName, 'data');
