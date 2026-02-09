@@ -76,7 +76,7 @@ async function loadClients() {
 
         tbody.innerHTML = clients.map(c => `
       <tr>
-        <td><span class="status-dot ${c.health === 'starting' ? 'starting' : c.status}"></span>${statusText(c.status, c.health)}</td>
+        <td><span class="status-dot ${c.health === 'starting' ? 'starting' : c.health === 'unhealthy' ? 'unhealthy' : c.status}"></span>${statusText(c.status, c.health)}</td>
         <td><strong>${c.name}</strong></td>
         <td>${c.port}</td>
         <td>${c.feishuDomain}</td>

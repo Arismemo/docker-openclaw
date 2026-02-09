@@ -239,7 +239,7 @@ tbody tr:last-child td {
 
 .status-dot.exited,
 .status-dot.stopped {
-  background: var(--warning);
+  background: var(--text-dim);
 }
 
 .status-dot.not_created {
@@ -253,8 +253,20 @@ tbody tr:last-child td {
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.status-dot.unhealthy {
+  background: #ef4444;
+  box-shadow: 0 0 6px #ef4444;
 }
 
 .actions {
