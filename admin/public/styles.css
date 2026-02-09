@@ -247,8 +247,8 @@ tbody tr:last-child td {
 }
 
 .status-dot.starting {
-  background: #f59e0b;
-  box-shadow: 0 0 6px #f59e0b;
+  background: #eab308;
+  box-shadow: 0 0 6px #eab308;
   animation: blink 1.2s ease-in-out infinite;
 }
 
