@@ -42,6 +42,12 @@ if [ ! -f "$INIT_MARKER" ]; then
         npx -y clawhub install "$skill" 2>/dev/null || echo "   ⚠️ $skill 安装失败，跳过"
     done
 
+    # 安装 memu-engine 记忆插件（自动记忆 + 向量检索）
+    echo "📦 安装 memU 记忆引擎..."
+    mkdir -p ~/.openclaw/extensions
+    git clone --depth 1 https://github.com/duxiaoxiong/memu-engine-for-OpenClaw.git \
+        ~/.openclaw/extensions/memu-engine 2>/dev/null || echo "   ⚠️ memU 安装失败"
+
     touch "$INIT_MARKER"
     echo "✅ 初始化完成！"
 else

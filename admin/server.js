@@ -539,6 +539,21 @@ app.post('/api/clients', async (req, res) => {
       config = JSON.parse(tplStr);
     }
 
+    // 替换 memU extraction 配置（复用主模型作为记忆提取引擎）
+    if (config.plugins?.entries?.['memu-engine']?.config?.extraction) {
+      const ext = config.plugins.entries['memu-engine'].config.extraction;
+      if (selectedModel) {
+        ext.baseUrl = selectedModel.baseUrl;
+        ext.apiKey = apiKey || zhipuApiKey || '';
+        ext.model = selectedModel.modelId;
+      } else {
+        // 默认智谱
+        ext.baseUrl = 'https://open.bigmodel.cn/api/coding/paas/v4';
+        ext.apiKey = zhipuApiKey || '';
+        ext.model = 'glm-4.7';
+      }
+    }
+
     await fs.writeFile(path.join(dataDir, 'openclaw.json'), JSON.stringify(config, null, 4) + '\n');
     // 确保所有文件属于 node 用户
     chownRecursiveSync(clientDir);
