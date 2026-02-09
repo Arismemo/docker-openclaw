@@ -786,6 +786,48 @@ app.post('/api/clients/:name/restart', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// 升级客户容器（保留数据，用新镜像重建，重新初始化插件/技能）
+app.post('/api/clients/:name/upgrade', async (req, res) => {
+  try {
+    const { name } = req.params;
+    const env = await parseEnv(path.join(CLIENTS_DIR, name, '.env'));
+    const port = env.PORT || '18789';
+
+    // 1. 停止并删除旧容器
+    const container = docker.getContainer(cname(name));
+    try { await container.stop(); } catch { /* 可能已停止 */ }
+    try { await container.remove(); } catch { /* 可能不存在 */ }
+
+    // 2. 删除 .initialized 标记，让 init.sh 重新安装插件/技能
+    const initMarker = path.join(CLIENTS_DIR, name, 'data', '.initialized');
+    try { await fs.unlink(initMarker); } catch { /* 不存在则忽略 */ }
+
+    // 3. 删除旧 extensions 目录（让 init.sh 重新 clone 最新版本）
+    const extDir = path.join(CLIENTS_DIR, name, 'data', 'extensions');
+    try { await fs.rm(extDir, { recursive: true, force: true }); } catch { }
+
+    // 4. 用新镜像重建容器
+    const hostDataPath = path.join(HOST_PROJECT_DIR, 'clients', name, 'data');
+    const containerEnv = [];
+    if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
+    if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
+    const newContainer = await docker.createContainer({
+      Image: OPENCLAW_IMAGE,
+      name: cname(name),
+      Env: containerEnv.length ? containerEnv : undefined,
+      ExposedPorts: { '18789/tcp': {} },
+      HostConfig: {
+        PortBindings: { '18789/tcp': [{ HostPort: String(port) }] },
+        Binds: [`${hostDataPath}:/home/node/.openclaw`],
+        RestartPolicy: { Name: 'unless-stopped' },
+      },
+    });
+    await newContainer.start();
+
+    res.json({ message: '升级完成，新插件和技能将自动安装' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── 实时日志 (SSE) ────────────────────────────────────────
 
 app.get('/api/clients/:name/logs', async (req, res) => {

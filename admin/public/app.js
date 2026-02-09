@@ -112,6 +112,7 @@ function actionButtons(c) {
       <button class="btn btn-accent btn-sm" onclick="window.open('http://' + location.hostname + ':${c.port}?token=${c.gatewayToken}', '_blank')">控制台</button>
       <button class="btn btn-ghost btn-sm" onclick="stopClient('${c.name}')">停止</button>
       <button class="btn btn-ghost btn-sm" onclick="restartClient('${c.name}')">重启</button>
+      <button class="btn btn-ghost btn-sm" onclick="upgradeClient('${c.name}')">🔄 升级</button>
       <button class="btn btn-ghost btn-sm" onclick="openLogs('${c.name}')">日志</button>
       <button class="btn btn-ghost btn-sm" onclick="exportClient('${c.name}')">📤 导出</button>
     `;
@@ -119,6 +120,7 @@ function actionButtons(c) {
     return `
     <button class="btn btn-primary btn-sm" onclick="startClient('${c.name}')">启动</button>
     <button class="btn btn-ghost btn-sm" onclick="editClient('${c.name}')">编辑</button>
+    <button class="btn btn-ghost btn-sm" onclick="upgradeClient('${c.name}')">🔄 升级</button>
     <button class="btn btn-ghost btn-sm" onclick="exportClient('${c.name}')">📤 导出</button>
     <button class="btn btn-danger btn-sm" onclick="deleteClient('${c.name}')">删除</button>
   `;
@@ -146,6 +148,16 @@ async function restartClient(name) {
     try {
         await api(`/clients/${name}/restart`, { method: 'POST' });
         toast(`${name} 已重启`, 'success');
+        loadDashboard(); loadClients();
+    } catch (e) { toast(e.message, 'error'); }
+}
+
+async function upgradeClient(name) {
+    if (!confirm(`确认升级 ${name}？\n\n升级将：\n• 用新镜像重建容器\n• 重新安装最新插件和技能\n• 保留所有对话历史和配置\n\n升级期间机器人将短暂离线。`)) return;
+    try {
+        toast(`${name} 升级中...`, 'success');
+        const r = await api(`/clients/${name}/upgrade`, { method: 'POST' });
+        toast(r.message || `${name} 升级完成`, 'success');
         loadDashboard(); loadClients();
     } catch (e) { toast(e.message, 'error'); }
 }
