@@ -76,7 +76,7 @@ async function loadClients() {
 
         tbody.innerHTML = clients.map(c => `
       <tr>
-        <td><span class="status-dot ${c.status}"></span>${statusText(c.status)}</td>
+        <td><span class="status-dot ${c.health === 'starting' ? 'starting' : c.status}"></span>${statusText(c.status, c.health)}</td>
         <td><strong>${c.name}</strong></td>
         <td>${c.port}</td>
         <td>${c.feishuDomain}</td>
@@ -90,8 +90,13 @@ async function loadClients() {
     }
 }
 
-function statusText(s) {
-    const map = { running: '运行中', exited: '已停止', created: '已创建', not_created: '未创建' };
+function statusText(s, health) {
+    if (s === 'running') {
+        if (health === 'starting') return '启动中…';
+        if (health === 'unhealthy') return '异常';
+        return '运行中';
+    }
+    const map = { exited: '已停止', created: '已创建', not_created: '未创建' };
     return map[s] || s;
 }
 

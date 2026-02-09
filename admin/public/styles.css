@@ -246,6 +246,17 @@ tbody tr:last-child td {
   background: var(--text-dim);
 }
 
+.status-dot.starting {
+  background: #f59e0b;
+  box-shadow: 0 0 6px #f59e0b;
+  animation: blink 1.2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 .actions {
   display: flex;
   gap: 6px;
