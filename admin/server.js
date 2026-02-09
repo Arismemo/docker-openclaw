@@ -545,9 +545,13 @@ app.post('/api/clients', async (req, res) => {
 
     // 创建并启动容器
     const hostDataPath = path.join(HOST_PROJECT_DIR, 'clients', name, 'data');
+    const containerEnv = [];
+    if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
+    if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
     const container = await docker.createContainer({
       Image: OPENCLAW_IMAGE,
       name: cname(name),
+      Env: containerEnv.length ? containerEnv : undefined,
       ExposedPorts: { '18789/tcp': {} },
       HostConfig: {
         PortBindings: { '18789/tcp': [{ HostPort: String(port) }] },
@@ -695,9 +699,13 @@ app.post('/api/clients/import', upload.single('file'), async (req, res) => {
 
     // 创建并启动容器
     const hostDataPath = path.join(HOST_PROJECT_DIR, 'clients', newName, 'data');
+    const containerEnv = [];
+    if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
+    if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
     const container = await docker.createContainer({
       Image: OPENCLAW_IMAGE,
       name: cname(newName),
+      Env: containerEnv.length ? containerEnv : undefined,
       ExposedPorts: { '18789/tcp': {} },
       HostConfig: {
         PortBindings: { '18789/tcp': [{ HostPort: String(newPort) }] },
@@ -727,9 +735,13 @@ app.post('/api/clients/:name/start', async (req, res) => {
       // 容器不存在，重新创建
       const env = await parseEnv(path.join(CLIENTS_DIR, name, '.env'));
       const hostDataPath = path.join(HOST_PROJECT_DIR, 'clients', name, 'data');
+      const containerEnv = [];
+      if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
+      if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
       const container = await docker.createContainer({
         Image: OPENCLAW_IMAGE,
         name: cname(name),
+        Env: containerEnv.length ? containerEnv : undefined,
         ExposedPorts: { '18789/tcp': {} },
         HostConfig: {
           PortBindings: { '18789/tcp': [{ HostPort: String(env.PORT || '18789') }] },

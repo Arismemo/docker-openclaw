@@ -32,6 +32,8 @@ services:
       - ADMIN_USER=${ADMIN_USER:-admin}
       - ADMIN_PASS=${ADMIN_PASS}
       - MODELS_FILE=/app/config/models.json
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
     restart: unless-stopped
 
   # OpenClaw 基础镜像构建（仅用于 build，不运行）
