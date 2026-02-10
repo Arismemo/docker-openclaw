@@ -134,11 +134,59 @@ else
     echo "ℹ️  已完成初始化，跳过插件和技能安装"
 fi
 
-# 每次启动时自动修复配置问题（非首次启动时）
-if [ -f "$INIT_MARKER" ]; then
-    echo "🔧 运行 doctor --fix..."
-    openclaw doctor --fix 2>/dev/null || true
+# === 以下逻辑每次启动都执行 ===
+
+# 链接自定义 skill（每次启动确保更新到最新版本）
+echo "📦 同步自定义 skill..."
+CUSTOM_SKILLS_DIR="/app/custom-skills"
+WORKSPACE_SKILLS="$HOME/.openclaw/workspace/skills"
+if [ -d "$CUSTOM_SKILLS_DIR" ]; then
+    for skill_dir in "$CUSTOM_SKILLS_DIR"/*/; do
+        skill_name=$(basename "$skill_dir")
+        target="$WORKSPACE_SKILLS/$skill_name"
+        # 每次都覆盖，确保 skill 代码与镜像同步
+        rm -rf "$target" 2>/dev/null
+        cp -r "$skill_dir" "$target"
+        echo "   ✅ 同步: $skill_name"
+    done
 fi
+
+# patch memory-lancedb 模型白名单（每次启动都执行，因为 upgrade 会重置插件文件）
+MEMORY_PLUGIN_JSON="/app/extensions/memory-lancedb/openclaw.plugin.json"
+MEMORY_CONFIG_TS="/app/extensions/memory-lancedb/config.ts"
+if [ -f "$MEMORY_PLUGIN_JSON" ] || [ -f "$MEMORY_CONFIG_TS" ]; then
+    echo "🔧 patch memory-lancedb 模型白名单..."
+    # 1) JSON schema: 移除 model enum 限制
+    if [ -f "$MEMORY_PLUGIN_JSON" ]; then
+        python3 -c '
+import json
+f = "'"$MEMORY_PLUGIN_JSON"'"
+with open(f) as fh:
+    s = json.load(fh)
+m = s.get("configSchema",{}).get("properties",{}).get("embedding",{}).get("properties",{}).get("model",{})
+if "enum" in m:
+    del m["enum"]
+    with open(f,"w") as fh:
+        json.dump(s,fh,indent=2)
+    print("   ✅ JSON schema: model enum 已移除")
+else:
+    print("   ℹ️  JSON schema: enum 已不存在，跳过")
+' 2>/dev/null || true
+    fi
+    # 2) TypeScript: 添加 nomic-embed-text 到白名单
+    if [ -f "$MEMORY_CONFIG_TS" ]; then
+        if ! grep -q 'nomic-embed-text' "$MEMORY_CONFIG_TS"; then
+            sed -i 's/const EMBEDDING_DIMENSIONS.*{/&\n  "nomic-embed-text": 768,/' "$MEMORY_CONFIG_TS" 2>/dev/null && \
+                echo "   ✅ TypeScript: 已添加 nomic-embed-text" || true
+        else
+            echo "   ℹ️  TypeScript: nomic-embed-text 已存在，跳过"
+        fi
+    fi
+fi
+
+# 自动修复配置问题
+echo "🔧 运行 doctor --fix..."
+openclaw doctor --fix 2>/dev/null || true
 
 # 读取或生成 Gateway Token（确保持久化，重启后不变）
 EXISTING_TOKEN=$(node -e "
