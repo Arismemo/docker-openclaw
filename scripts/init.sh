@@ -140,6 +140,7 @@ fi
 echo "📦 同步自定义 skill..."
 CUSTOM_SKILLS_DIR="/app/custom-skills"
 WORKSPACE_SKILLS="$HOME/.openclaw/workspace/skills"
+mkdir -p "$WORKSPACE_SKILLS"
 if [ -d "$CUSTOM_SKILLS_DIR" ]; then
     for skill_dir in "$CUSTOM_SKILLS_DIR"/*/; do
         skill_name=$(basename "$skill_dir")
