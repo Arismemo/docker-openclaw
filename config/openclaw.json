@@ -3,8 +3,9 @@
         "defaults": {
             "model": {
                 "primary": "gemini/claude-opus-4-6-thinking",
-                "fallback": "zhipu/glm-4.7",
-                "max_fallbacks": 3
+                "fallbacks": [
+                    "zhipu/glm-4.7"
+                ]
             },
             "imageModel": {
                 "primary": "gemini/gemini-3-pro-image"
