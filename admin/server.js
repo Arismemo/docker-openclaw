@@ -539,21 +539,6 @@ app.post('/api/clients', async (req, res) => {
       config = JSON.parse(tplStr);
     }
 
-    // 替换 memU extraction 配置（复用主模型作为记忆提取引擎）
-    if (config.plugins?.entries?.['memu-engine']?.config?.extraction) {
-      const ext = config.plugins.entries['memu-engine'].config.extraction;
-      if (selectedModel) {
-        ext.baseUrl = selectedModel.baseUrl;
-        ext.apiKey = apiKey || zhipuApiKey || '';
-        ext.model = selectedModel.modelId;
-      } else {
-        // 默认智谱
-        ext.baseUrl = 'https://open.bigmodel.cn/api/coding/paas/v4';
-        ext.apiKey = zhipuApiKey || '';
-        ext.model = 'glm-4.7';
-      }
-    }
-
     await fs.writeFile(path.join(dataDir, 'openclaw.json'), JSON.stringify(config, null, 4) + '\n');
     // 确保所有文件属于 node 用户
     chownRecursiveSync(clientDir);
@@ -563,6 +548,7 @@ app.post('/api/clients', async (req, res) => {
     const containerEnv = [];
     if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
     if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
+    containerEnv.push('OPENAI_BASE_URL=http://172.17.0.1:11434/v1', 'OPENAI_API_KEY=ollama');
     const container = await docker.createContainer({
       Image: OPENCLAW_IMAGE,
       name: cname(name),
@@ -717,6 +703,7 @@ app.post('/api/clients/import', upload.single('file'), async (req, res) => {
     const containerEnv = [];
     if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
     if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
+    containerEnv.push('OPENAI_BASE_URL=http://172.17.0.1:11434/v1', 'OPENAI_API_KEY=ollama');
     const container = await docker.createContainer({
       Image: OPENCLAW_IMAGE,
       name: cname(newName),
@@ -753,6 +740,7 @@ app.post('/api/clients/:name/start', async (req, res) => {
       const containerEnv = [];
       if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
       if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
+      containerEnv.push('OPENAI_BASE_URL=http://172.17.0.1:11434/v1', 'OPENAI_API_KEY=ollama');
       const container = await docker.createContainer({
         Image: OPENCLAW_IMAGE,
         name: cname(name),
@@ -806,11 +794,12 @@ app.post('/api/clients/:name/upgrade', async (req, res) => {
     const extDir = path.join(CLIENTS_DIR, name, 'data', 'extensions');
     try { await fs.rm(extDir, { recursive: true, force: true }); } catch { }
 
-    // 4. 用新镜像重建容器
+    // 4. 用新镜像重建容器（memory-lancedb 配置由 init.sh 自动注入）
     const hostDataPath = path.join(HOST_PROJECT_DIR, 'clients', name, 'data');
     const containerEnv = [];
     if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
     if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
+    containerEnv.push('OPENAI_BASE_URL=http://172.17.0.1:11434/v1', 'OPENAI_API_KEY=ollama');
     const newContainer = await docker.createContainer({
       Image: OPENCLAW_IMAGE,
       name: cname(name),

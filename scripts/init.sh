@@ -42,11 +42,76 @@ if [ ! -f "$INIT_MARKER" ]; then
         npx -y clawhub install "$skill" 2>/dev/null || echo "   ⚠️ $skill 安装失败，跳过"
     done
 
-    # 安装 memu-engine 记忆插件（自动记忆 + 向量检索）
-    echo "📦 安装 memU 记忆引擎..."
-    mkdir -p ~/.openclaw/extensions
-    git clone --depth 1 https://github.com/duxiaoxiong/memu-engine-for-OpenClaw.git \
-        ~/.openclaw/extensions/memu-engine 2>/dev/null || echo "   ⚠️ memU 安装失败"
+    # 启用内置 memory-lancedb 长期记忆插件（LanceDB 向量存储 + 自动记忆）
+    echo "📦 启用 memory-lancedb 记忆插件..."
+
+    # patch 插件模型白名单：允许 Ollama 的 nomic-embed-text 模型
+    # OpenClaw 有两层验证，必须同时 patch 才能通过：
+    #   1) openclaw.plugin.json 中 JSON schema 的 model enum
+    #   2) config.ts 中 TypeScript 的 EMBEDDING_DIMENSIONS 白名单
+    echo "   🔧 patch 模型白名单..."
+
+    # 层 1: patch JSON schema — 移除 model 字段的 enum 限制
+    python3 -c '
+import json, os
+schema_file = "/app/extensions/memory-lancedb/openclaw.plugin.json"
+if os.path.exists(schema_file):
+    with open(schema_file) as f:
+        schema = json.load(f)
+    emb = schema.get("configSchema", {}).get("properties", {}).get("embedding", {})
+    emb_props = emb.get("properties", {})
+    model_prop = emb_props.get("model", {})
+    if "enum" in model_prop:
+        del model_prop["enum"]
+        with open(schema_file, "w") as f:
+            json.dump(schema, f, indent=2)
+        print("   ✅ JSON schema: model enum 已移除")
+    else:
+        print("   ℹ️  JSON schema: model enum 不存在，无需 patch")
+else:
+    print("   ⚠️ openclaw.plugin.json 不存在")
+' || echo "   ⚠️ JSON schema patch 失败"
+
+    # 层 2: patch TypeScript 白名单 — 添加 nomic-embed-text 维度映射
+    MEMORY_CONFIG_TS="/app/extensions/memory-lancedb/config.ts"
+    if [ -f "$MEMORY_CONFIG_TS" ]; then
+        if ! grep -q 'nomic-embed-text' "$MEMORY_CONFIG_TS"; then
+            sed -i 's/"text-embedding-3-large": 3072,/"text-embedding-3-large": 3072,\n  "nomic-embed-text": 768,/' "$MEMORY_CONFIG_TS"
+            echo "   ✅ TypeScript: EMBEDDING_DIMENSIONS 已添加 nomic-embed-text"
+        else
+            echo "   ℹ️  TypeScript: nomic-embed-text 已存在"
+        fi
+    else
+        echo "   ⚠️ $MEMORY_CONFIG_TS 不存在，跳过 TypeScript patch"
+    fi
+
+    # 注入 embedding 配置并启用插件（使用 Ollama 的 nomic-embed-text 模型）
+    python3 -c '
+import json, os
+config_file = os.path.expanduser("~/.openclaw/openclaw.json")
+with open(config_file) as f:
+    config = json.load(f)
+if "plugins" not in config:
+    config["plugins"] = {}
+entries = config["plugins"].setdefault("entries", {})
+entries["memory-lancedb"] = {
+    "enabled": True,
+    "config": {
+        "embedding": {
+            "apiKey": os.environ.get("OPENAI_API_KEY", "${OPENAI_API_KEY}"),
+            "model": "nomic-embed-text"
+        },
+        "autoCapture": True,
+        "autoRecall": True
+    }
+}
+# 设置 memory slot 为 memory-lancedb
+config["plugins"]["slots"] = config["plugins"].get("slots", {})
+config["plugins"]["slots"]["memory"] = "memory-lancedb"
+with open(config_file, "w") as f:
+    json.dump(config, f, indent=4, ensure_ascii=False)
+print("   ✅ memory-lancedb config injected (model=nomic-embed-text)")
+' || echo "   ⚠️ memory-lancedb 配置注入失败"
 
     touch "$INIT_MARKER"
     echo "✅ 初始化完成！"

@@ -46,31 +46,6 @@
             "groupPolicy": "allowlist"
         }
     },
-    "plugins": {
-        "slots": {
-            "memory": "memu-engine"
-        },
-        "entries": {
-            "memu-engine": {
-                "enabled": true,
-                "config": {
-                    "embedding": {
-                        "provider": "openai",
-                        "baseUrl": "http://172.17.0.1:11434/v1",
-                        "apiKey": "ollama",
-                        "model": "bge-m3"
-                    },
-                    "extraction": {
-                        "provider": "openai",
-                        "baseUrl": "EXTRACTION_BASE_URL_PLACEHOLDER",
-                        "apiKey": "EXTRACTION_API_KEY_PLACEHOLDER",
-                        "model": "EXTRACTION_MODEL_PLACEHOLDER"
-                    },
-                    "language": "zh"
-                }
-            }
-        }
-    },
     "tools": {
         "web": {
             "search": {
