@@ -535,7 +535,8 @@ app.post('/api/clients', async (req, res) => {
     } else {
       // 兼容旧逻辑：替换占位符
       let tplStr = JSON.stringify(config);
-      tplStr = tplStr.replace('ZHIPU_API_KEY_PLACEHOLDER', zhipuApiKey || '');
+      tplStr = tplStr.replace('ZHIPU_API_KEY_PLACEHOLDER', zhipuApiKey || '')
+        .replace('GEMINI_API_KEY_PLACEHOLDER', process.env.GEMINI_API_KEY || '');
       config = JSON.parse(tplStr);
     }
 
@@ -590,7 +591,8 @@ app.put('/api/clients/:name', async (req, res) => {
       .replace('FEISHU_APP_ID_PLACEHOLDER', feishuAppId || '')
       .replace('FEISHU_APP_SECRET_PLACEHOLDER', feishuAppSecret || '')
       .replace('FEISHU_DOMAIN_PLACEHOLDER', feishuDomain || 'feishu')
-      .replace('ZHIPU_API_KEY_PLACEHOLDER', zhipuApiKey || '');
+      .replace('ZHIPU_API_KEY_PLACEHOLDER', zhipuApiKey || '')
+      .replace('GEMINI_API_KEY_PLACEHOLDER', process.env.GEMINI_API_KEY || '');
     await fs.writeFile(path.join(dir, 'data', 'openclaw.json'), tpl);
 
     res.json({ message: '配置已更新，请重启实例以生效' });

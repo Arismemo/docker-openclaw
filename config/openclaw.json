@@ -2,7 +2,12 @@
     "agents": {
         "defaults": {
             "model": {
-                "primary": "zhipu/glm-4.7"
+                "primary": "gemini/claude-opus-4-6-thinking",
+                "fallback": "zhipu/glm-4.7",
+                "max_fallbacks": 3
+            },
+            "imageModel": {
+                "primary": "gemini/gemini-3-pro-image"
             },
             "contextTokens": 128000,
             "sandbox": {
@@ -12,6 +17,25 @@
     },
     "models": {
         "providers": {
+            "gemini": {
+                "baseUrl": "https://gemini.709970.xyz/v1",
+                "apiKey": "GEMINI_API_KEY_PLACEHOLDER",
+                "api": "openai-completions",
+                "models": [
+                    {
+                        "id": "claude-opus-4-6-thinking",
+                        "name": "Claude Opus 4.6 Thinking",
+                        "contextWindow": 200000,
+                        "maxTokens": 16384
+                    },
+                    {
+                        "id": "gemini-3-pro-image",
+                        "name": "Gemini 3 Pro Image",
+                        "contextWindow": 128000,
+                        "maxTokens": 8192
+                    }
+                ]
+            },
             "zhipu": {
                 "baseUrl": "https://open.bigmodel.cn/api/coding/paas/v4",
                 "apiKey": "ZHIPU_API_KEY_PLACEHOLDER",
