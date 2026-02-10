@@ -550,6 +550,7 @@ app.post('/api/clients', async (req, res) => {
     if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
     if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
     containerEnv.push('OPENAI_BASE_URL=http://172.17.0.1:11434/v1', 'OPENAI_API_KEY=ollama');
+    if (process.env.GEMINI_API_KEY) containerEnv.push(`GEMINI_API_KEY=${process.env.GEMINI_API_KEY}`);
     const container = await docker.createContainer({
       Image: OPENCLAW_IMAGE,
       name: cname(name),

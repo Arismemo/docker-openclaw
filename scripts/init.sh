@@ -42,6 +42,21 @@ if [ ! -f "$INIT_MARKER" ]; then
         npx -y clawhub install "$skill" 2>/dev/null || echo "   ⚠️ $skill 安装失败，跳过"
     done
 
+    # 链接自定义 skill 到工作区（不修改内置 skill，独立维护）
+    echo "📦 链接自定义 skill..."
+    CUSTOM_SKILLS_DIR="/app/custom-skills"
+    WORKSPACE_SKILLS="$HOME/.openclaw/workspace/skills"
+    if [ -d "$CUSTOM_SKILLS_DIR" ]; then
+        for skill_dir in "$CUSTOM_SKILLS_DIR"/*/; do
+            skill_name=$(basename "$skill_dir")
+            target="$WORKSPACE_SKILLS/$skill_name"
+            if [ ! -e "$target" ]; then
+                cp -r "$skill_dir" "$target"
+                echo "   ✅ 链接: $skill_name"
+            fi
+        done
+    fi
+
     # 启用内置 memory-lancedb 长期记忆插件（LanceDB 向量存储 + 自动记忆）
     echo "📦 启用 memory-lancedb 记忆插件..."
 
