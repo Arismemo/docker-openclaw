@@ -128,6 +128,35 @@ with open(config_file, "w") as f:
 print("   ✅ memory-lancedb config injected (model=nomic-embed-text)")
 ' || echo "   ⚠️ memory-lancedb 配置注入失败"
 
+    # 向 AGENTS.md 追加教程触发规则
+    AGENTS_FILE="$HOME/.openclaw/workspace/AGENTS.md"
+    if [ -f "$AGENTS_FILE" ]; then
+        if ! grep -q '教程触发规则' "$AGENTS_FILE" 2>/dev/null; then
+            cat >> "$AGENTS_FILE" << 'TUTORIAL_EOF'
+
+## 📖 教程触发规则
+
+当用户输入以下关键词时，调用 `feishu-welcome` skill 发送教程卡片：
+- 触发词：「教程」「帮助」「help」「指南」「你能做什么」「功能介绍」
+- 调用命令：`python3 {feishu-welcome baseDir}/scripts/send_card.py --type main --chat-id <当前会话的chat_id>`
+- 发送卡片后**不要**额外发文字消息
+
+当用户回复教程中的数字 1-5 时：
+- **1 画图**：用 `gemini-image-gen` skill 画一张"太空猫"作为演示，完成后发送详解卡片 `--type art`
+- **2 搜索**：用联网搜索功能搜索"今天的 AI 新闻"作为演示，完成后发送详解卡片 `--type search`
+- **3 记忆**：向用户解释记忆功能并引导他们说出一个偏好，完成后发送详解卡片 `--type memory`
+- **4 文档**：向用户介绍文档操作能力，完成后发送详解卡片 `--type doc`
+- **5 表格**：向用户介绍多维表格操作能力，完成后发送详解卡片 `--type table`
+
+注意：发送详解卡片的命令同样需要 `--chat-id` 参数。
+
+TUTORIAL_EOF
+            echo "   ✅ AGENTS.md: 教程触发规则已添加"
+        else
+            echo "   ℹ️  AGENTS.md: 教程触发规则已存在，跳过"
+        fi
+    fi
+
     touch "$INIT_MARKER"
     echo "✅ 初始化完成！"
 else
