@@ -185,6 +185,20 @@ else:
     fi
 fi
 
+# patch 飞书 media.ts：修复图片上传 Readable.from(buffer) 兼容性问题
+# @larksuiteoapi SDK 的 form-data 不支持 Readable.from(buffer)，会导致 400 错误
+FEISHU_MEDIA="/app/extensions/feishu/src/media.ts"
+if [ -f "$FEISHU_MEDIA" ]; then
+    if grep -q 'Readable.from(image)' "$FEISHU_MEDIA"; then
+        echo "🔧 patch 飞书 media.ts 图片上传方式..."
+        # 将 Readable.from(buffer) 替换为写临时文件 + createReadStream
+        sed -i 's|const imageStream = typeof image === "string" ? fs.createReadStream(image) : Readable.from(image);|const imageStream = (() => { if (typeof image === "string") return fs.createReadStream(image); const tmpPath = "/tmp/feishu-upload-" + Date.now() + ".png"; fs.writeFileSync(tmpPath, image); const stream = fs.createReadStream(tmpPath); stream.on("close", () => { try { fs.unlinkSync(tmpPath); } catch {} }); return stream; })();|' "$FEISHU_MEDIA" 2>/dev/null && \
+            echo "   ✅ 飞书 media.ts: 图片上传方式已修复" || echo "   ⚠️ 飞书 media.ts patch 失败"
+    else
+        echo "   ℹ️  飞书 media.ts: 已修复或格式不匹配，跳过"
+    fi
+fi
+
 # 自动修复配置问题
 echo "🔧 运行 doctor --fix..."
 openclaw doctor --fix 2>/dev/null || true
