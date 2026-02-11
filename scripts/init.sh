@@ -234,6 +234,20 @@ fi
 echo "🔧 运行 doctor --fix..."
 openclaw doctor --fix 2>/dev/null || true
 
+# doctor --fix 会覆盖 openclaw.json，需要重新注入容器必需的 gateway 配置
+node -e "
+const fs = require('fs');
+const f = '$HOME/.openclaw/openclaw.json';
+try {
+  const c = JSON.parse(fs.readFileSync(f, 'utf-8'));
+  if (!c.gateway) c.gateway = {};
+  c.gateway.mode = 'local';
+  c.gateway.bind = 'lan';
+  fs.writeFileSync(f, JSON.stringify(c, null, 2));
+  console.log('   ✅ gateway.mode=local, bind=lan 已注入');
+} catch(e) { console.log('   ⚠️ gateway 配置注入失败:', e.message); }
+" 2>/dev/null || true
+
 # 读取或生成 Gateway Token（确保持久化，重启后不变）
 EXISTING_TOKEN=$(node -e "
 try {
