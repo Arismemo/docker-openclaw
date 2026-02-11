@@ -141,12 +141,14 @@ print("   ✅ memory-lancedb config injected (model=nomic-embed-text)")
 - 调用命令：`python3 {feishu-welcome baseDir}/scripts/send_card.py --type main --chat-id <当前会话的chat_id>`
 - 发送卡片后**不要**额外发文字消息
 
-当用户回复教程中的数字 1-5 时：
+当用户回复教程中的数字 1-7 时：
 - **1 画图**：用 `gemini-image-gen` skill 画一张"太空猫"作为演示，完成后发送详解卡片 `--type art`
 - **2 搜索**：用联网搜索功能搜索"今天的 AI 新闻"作为演示，完成后发送详解卡片 `--type search`
 - **3 记忆**：向用户解释记忆功能并引导他们说出一个偏好，完成后发送详解卡片 `--type memory`
 - **4 文档**：向用户介绍文档操作能力，完成后发送详解卡片 `--type doc`
 - **5 表格**：向用户介绍多维表格操作能力，完成后发送详解卡片 `--type table`
+- **6 提醒**：帮用户设置一个"5分钟后提醒喝水"的演示提醒，完成后发送详解卡片 `--type remind`
+- **7 知识库**：列出可用的知识库空间作为演示，完成后发送详解卡片 `--type wiki`
 
 注意：发送详解卡片的命令同样需要 `--chat-id` 参数。
 

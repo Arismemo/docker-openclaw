@@ -104,11 +104,27 @@ def card_main():
             },
             {"tag": "hr"},
             {
+                "tag": "div",
+                "text": {
+                    "tag": "lark_md",
+                    "content": "**⏰ 6. 定时提醒**\n设置定时任务，到点自动提醒你。\n💡 试试说：「每天早上 9 点提醒我看邮件」"
+                }
+            },
+            {"tag": "hr"},
+            {
+                "tag": "div",
+                "text": {
+                    "tag": "lark_md",
+                    "content": "**📚 7. 知识库**\n浏览和管理飞书知识库/Wiki 页面。\n💡 试试说：「列出知识库里的所有文档」"
+                }
+            },
+            {"tag": "hr"},
+            {
                 "tag": "note",
                 "elements": [
                     {
                         "tag": "plain_text",
-                        "content": "💬 回复 1-5 体验对应功能 ｜ 随时输入「教程」重新查看本指南"
+                        "content": "💬 回复 1-7 体验对应功能 ｜ 随时输入「教程」重新查看本指南"
                     }
                 ]
             }
@@ -286,6 +302,74 @@ def card_table():
     }
 
 
+def card_remind():
+    """定时提醒功能详解卡片。"""
+    return {
+        "header": {
+            "title": {"tag": "plain_text", "content": "⏰ 定时提醒详解"},
+            "template": "yellow"
+        },
+        "elements": [
+            {
+                "tag": "div",
+                "text": {
+                    "tag": "lark_md",
+                    "content": "再也不会忘记重要事项！⏰\n\n**使用场景：**"
+                }
+            },
+            {"tag": "hr"},
+            {
+                "tag": "div",
+                "text": {
+                    "tag": "lark_md",
+                    "content": "• 「每天早上 9 点提醒我站会」— 每日提醒\n• 「20 分钟后提醒我喝水」— 一次性提醒\n• 「每周一上午 10 点提醒我写周报」— 周期提醒\n• 「列出我的所有提醒」— 查看和管理"
+                }
+            },
+            {"tag": "hr"},
+            {
+                "tag": "note",
+                "elements": [
+                    {"tag": "plain_text", "content": "ℹ️ 支持 cron 表达式 ｜ 一次性或周期性 ｜ 可随时取消"}
+                ]
+            }
+        ]
+    }
+
+
+def card_wiki():
+    """知识库功能详解卡片。"""
+    return {
+        "header": {
+            "title": {"tag": "plain_text", "content": "📚 知识库详解"},
+            "template": "indigo"
+        },
+        "elements": [
+            {
+                "tag": "div",
+                "text": {
+                    "tag": "lark_md",
+                    "content": "直接在对话中管理飞书 Wiki！📖\n\n**支持操作：**"
+                }
+            },
+            {"tag": "hr"},
+            {
+                "tag": "div",
+                "text": {
+                    "tag": "lark_md",
+                    "content": "• 「列出知识库空间」— 查看所有 Wiki 空间\n• 「在知识库里新建一个页面」— 创建文档\n• 「读取这个 Wiki 链接的内容」— 读取页面\n• 「把这个页面移到另一个目录」— 整理结构"
+                }
+            },
+            {"tag": "hr"},
+            {
+                "tag": "note",
+                "elements": [
+                    {"tag": "plain_text", "content": "ℹ️ 浏览/创建/移动/重命名 Wiki 页面 ｜ 与飞书文档联动"}
+                ]
+            }
+        ]
+    }
+
+
 CARD_MAP = {
     "main": card_main,
     "art": card_art,
@@ -293,6 +377,8 @@ CARD_MAP = {
     "memory": card_memory,
     "doc": card_doc,
     "table": card_table,
+    "remind": card_remind,
+    "wiki": card_wiki,
 }
 
 
@@ -322,7 +408,7 @@ def send_card(token, base_url, chat_id, card_json):
 def main():
     parser = argparse.ArgumentParser(description="发送飞书欢迎教程卡片")
     parser.add_argument("--type", choices=list(CARD_MAP.keys()), default="main",
-                        help="卡片类型：main(主教程) / art(画图) / search(搜索) / memory(记忆) / doc(文档) / table(表格)")
+                        help="卡片类型：main / art / search / memory / doc / table / remind / wiki")
     parser.add_argument("--chat-id", required=True,
                         help="飞书会话 ID（oc_ 开头的 chat_id）")
     args = parser.parse_args()

@@ -44,6 +44,12 @@ python3 {baseDir}/scripts/send_card.py --type doc --chat-id <CHAT_ID>
 
 # 发送表格功能详解卡片
 python3 {baseDir}/scripts/send_card.py --type table --chat-id <CHAT_ID>
+
+# 发送定时提醒详解卡片
+python3 {baseDir}/scripts/send_card.py --type remind --chat-id <CHAT_ID>
+
+# 发送知识库详解卡片
+python3 {baseDir}/scripts/send_card.py --type wiki --chat-id <CHAT_ID>
 ```
 
 ## 卡片类型
@@ -56,3 +62,5 @@ python3 {baseDir}/scripts/send_card.py --type table --chat-id <CHAT_ID>
 | `memory` | 记忆详解 | 用户回复 3 或「试试记忆」，执行演示后 |
 | `doc` | 文档详解 | 用户回复 4 或「试试文档」，执行演示后 |
 | `table` | 表格详解 | 用户回复 5 或「试试表格」，执行演示后 |
+| `remind` | 定时提醒详解 | 用户回复 6 或「试试提醒」，执行演示后 |
+| `wiki` | 知识库详解 | 用户回复 7 或「试试知识库」，执行演示后 |
