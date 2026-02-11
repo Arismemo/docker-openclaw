@@ -34,6 +34,7 @@ services:
       - MODELS_FILE=/app/config/models.json
       - HTTP_PROXY=${HTTP_PROXY:-}
       - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     restart: unless-stopped
 

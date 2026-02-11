@@ -549,6 +549,7 @@ app.post('/api/clients', async (req, res) => {
     const containerEnv = [];
     if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
     if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
+    if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY) containerEnv.push('NO_PROXY=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1', 'no_proxy=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1');
     containerEnv.push('OPENAI_BASE_URL=http://172.17.0.1:11434/v1', 'OPENAI_API_KEY=ollama');
     if (process.env.GEMINI_API_KEY) containerEnv.push(`GEMINI_API_KEY=${process.env.GEMINI_API_KEY}`);
     const container = await docker.createContainer({
@@ -706,7 +707,9 @@ app.post('/api/clients/import', upload.single('file'), async (req, res) => {
     const containerEnv = [];
     if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
     if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
+    if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY) containerEnv.push('NO_PROXY=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1', 'no_proxy=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1');
     containerEnv.push('OPENAI_BASE_URL=http://172.17.0.1:11434/v1', 'OPENAI_API_KEY=ollama');
+    if (process.env.GEMINI_API_KEY) containerEnv.push(`GEMINI_API_KEY=${process.env.GEMINI_API_KEY}`);
     const container = await docker.createContainer({
       Image: OPENCLAW_IMAGE,
       name: cname(newName),
@@ -743,7 +746,9 @@ app.post('/api/clients/:name/start', async (req, res) => {
       const containerEnv = [];
       if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
       if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
+      if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY) containerEnv.push('NO_PROXY=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1', 'no_proxy=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1');
       containerEnv.push('OPENAI_BASE_URL=http://172.17.0.1:11434/v1', 'OPENAI_API_KEY=ollama');
+      if (process.env.GEMINI_API_KEY) containerEnv.push(`GEMINI_API_KEY=${process.env.GEMINI_API_KEY}`);
       const container = await docker.createContainer({
         Image: OPENCLAW_IMAGE,
         name: cname(name),
@@ -802,7 +807,9 @@ app.post('/api/clients/:name/upgrade', async (req, res) => {
     const containerEnv = [];
     if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
     if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
+    if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY) containerEnv.push('NO_PROXY=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1', 'no_proxy=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1');
     containerEnv.push('OPENAI_BASE_URL=http://172.17.0.1:11434/v1', 'OPENAI_API_KEY=ollama');
+    if (process.env.GEMINI_API_KEY) containerEnv.push(`GEMINI_API_KEY=${process.env.GEMINI_API_KEY}`);
     const newContainer = await docker.createContainer({
       Image: OPENCLAW_IMAGE,
       name: cname(name),

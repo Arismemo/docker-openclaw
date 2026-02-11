@@ -2,9 +2,9 @@
     "agents": {
         "defaults": {
             "model": {
-                "primary": "gemini/claude-opus-4-6-thinking",
+                "primary": "zhipu/glm-4.7",
                 "fallbacks": [
-                    "zhipu/glm-4.7"
+                    "gemini/claude-opus-4-6-thinking"
                 ]
             },
             "imageModel": {
