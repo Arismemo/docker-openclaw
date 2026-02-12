@@ -102,7 +102,8 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@memu-postgres:5432/memu
       - TEMPORAL_HOST=memu-temporal:7233
       - DEFAULT_EMBED_MODEL=nomic-embed-text
-      - DEFAULT_LLM_MODEL=qwen2.5:1.5b
+      - DEFAULT_LLM_MODEL=glm-4.5-air
+      - ZHIPU_API_KEY=${ZHIPU_API_KEY}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

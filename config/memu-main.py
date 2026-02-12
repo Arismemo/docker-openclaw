@@ -1,6 +1,6 @@
 """
 自定义 memU-server 入口文件
-基于 Docker 镜像中的实际代码结构，注入 Ollama 的 base_url / embed_model / chat_model
+Hybrid 方案：Zhipu GLM-4.5-Air 做 chat/summarize，Ollama 做 embedding
 """
 
 import json
@@ -11,35 +11,71 @@ from pathlib import Path
 from typing import Any, Dict
 
 import httpx
+from openai import AsyncOpenAI
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from memu.app import MemoryService
 
 app = FastAPI()
 
-# 从环境变量获取配置
-api_key = os.getenv("OPENAI_API_KEY", "ollama")
-base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-chat_model = os.getenv("DEFAULT_LLM_MODEL", "qwen2.5:1.5b")
+# ===== 配置 =====
+# Ollama 用于 embedding
+ollama_base_url = os.getenv("OPENAI_BASE_URL", "http://host.docker.internal:11434/v1")
 embed_model = os.getenv("DEFAULT_EMBED_MODEL", "nomic-embed-text")
 
-print(f"🔧 memU 配置: base_url={base_url}, chat={chat_model}, embed={embed_model}")
+# Zhipu 用于 chat/summarize
+zhipu_api_key = os.getenv("ZHIPU_API_KEY", "")
+zhipu_base_url = os.getenv("ZHIPU_BASE_URL", "https://open.bigmodel.cn/api/paas/v4")
+chat_model = os.getenv("DEFAULT_LLM_MODEL", "glm-4.5-air")
 
-# 初始化 MemoryService，传入完整的 llm_config
+print(f"🔧 memU hybrid 配置:")
+print(f"   Chat:  {zhipu_base_url} / {chat_model}")
+print(f"   Embed: {ollama_base_url} / {embed_model}")
+
+# 初始化 MemoryService（用 Ollama 做 embedding）
 service = MemoryService(
     llm_config={
-        "api_key": api_key,
-        "base_url": base_url,
+        "api_key": "ollama",
+        "base_url": ollama_base_url,
         "chat_model": chat_model,
         "embed_model": embed_model,
     }
 )
 
-# 修改 OpenAI SDK client 的超时设置
-# Ollama 在 CPU-only 服务器上串行推理，并行请求排队时 connect 会等待
-# 默认 connect=5s 太短，改为 connect=60s, read=300s
-service.openai.client.timeout = httpx.Timeout(connect=60.0, read=300.0, write=300.0, pool=300.0)
-print(f"⏱️  OpenAI SDK timeout 已设为: {service.openai.client.timeout}")
+# 增加 Ollama embedding client 的超时（CPU 推理可能较慢）
+service.openai.client.timeout = httpx.Timeout(connect=30.0, read=120.0, write=120.0, pool=120.0)
+
+# 创建 Zhipu chat client 并替换 summarize 方法
+zhipu_client = AsyncOpenAI(
+    api_key=zhipu_api_key,
+    base_url=zhipu_base_url,
+    timeout=httpx.Timeout(connect=10.0, read=120.0, write=120.0, pool=120.0),
+)
+
+# Monkey-patch: 让 chat/summarize 走 Zhipu，embedding 保持走 Ollama
+_original_summarize = service.openai.summarize.__func__
+
+
+async def _zhipu_summarize(self, text, *, max_tokens=None, system_prompt=None):
+    """使用 Zhipu GLM-4.5-Air 做 summarize"""
+    prompt = system_prompt or "Summarize the text in one short paragraph."
+    messages = [
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": text},
+    ]
+    response = await zhipu_client.chat.completions.create(
+        model=chat_model,
+        messages=messages,
+        temperature=1,
+        max_tokens=max_tokens,
+    )
+    return response.choices[0].message.content or ""
+
+
+import types
+service.openai.summarize = types.MethodType(_zhipu_summarize, service.openai)
+
+print(f"✅ Hybrid 配置完成: chat → Zhipu, embedding → Ollama")
 
 # 对话文件存储目录
 storage_dir = Path(os.getenv("MEMU_STORAGE_DIR", "./data"))
