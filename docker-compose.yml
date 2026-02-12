@@ -77,7 +77,7 @@ services:
       memu-postgres:
         condition: service_healthy
     environment:
-      - DB=postgresql
+      - DB=postgres12
       - DB_PORT=5432
       - POSTGRES_USER=postgres
       - POSTGRES_PWD=postgres
@@ -100,6 +100,9 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-placeholder}
       - DATABASE_URL=postgresql://postgres:postgres@memu-postgres:5432/memu
       - TEMPORAL_HOST=memu-temporal:7233
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=memu-postgres,memu-temporal,localhost,127.0.0.1
     ports:
       - "8000:8000"
     restart: unless-stopped
