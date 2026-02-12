@@ -238,56 +238,100 @@ const f = '$HOME/.openclaw/openclaw.json';
 const backup = '$HOME/.openclaw/.credentials-backup.json';
 try {
   const c = JSON.parse(fs.readFileSync(f, 'utf-8'));
-  // 保存 doctor 会覆盖的关键配置
   const saved = {
     feishu: c.channels?.feishu || {},
     providers: c.models?.providers || {},
     agents: c.agents || {},
-    gateway: c.gateway || {}
+    gateway: c.gateway || {},
+    tools: c.tools || {}
   };
   fs.writeFileSync(backup, JSON.stringify(saved, null, 2));
   console.log('   📦 关键凭据已备份');
-} catch(e) { console.log('   ⚠️ 备份失败:', e.message); }
+} catch(e) { console.log('   ⚠️ 备份失败（首次部署则正常）:', e.message); }
 " 2>/dev/null || true
 
 openclaw doctor --fix 2>/dev/null || true
 
-# doctor --fix 后恢复关键凭据和容器必需的 gateway 配置
+# doctor 后：以镜像默认配置为基底，合并 doctor 产出 + 备份凭据
 node -e "
 const fs = require('fs');
-const f = '$HOME/.openclaw/openclaw.json';
-const backup = '$HOME/.openclaw/.credentials-backup.json';
-try {
-  const c = JSON.parse(fs.readFileSync(f, 'utf-8'));
-  const saved = JSON.parse(fs.readFileSync(backup, 'utf-8'));
+const runtime = '$HOME/.openclaw/openclaw.json';
+const backupFile = '$HOME/.openclaw/.credentials-backup.json';
+const defaultConfig = '/app/config/openclaw.json';
 
-  // 恢复飞书凭据（如果 doctor 覆盖为 placeholder）
-  if (c.channels?.feishu?.appId?.includes('PLACEHOLDER') && !saved.feishu.appId?.includes('PLACEHOLDER')) {
-    c.channels.feishu.appId = saved.feishu.appId;
-    c.channels.feishu.appSecret = saved.feishu.appSecret;
-    c.channels.feishu.domain = saved.feishu.domain;
+function deepMerge(target, source) {
+  for (const key of Object.keys(source)) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      target[key] = target[key] || {};
+      deepMerge(target[key], source[key]);
+    } else {
+      target[key] = source[key];
+    }
+  }
+  return target;
+}
+
+try {
+  // 三个配置源
+  const doctor = JSON.parse(fs.readFileSync(runtime, 'utf-8'));
+  const defaults = JSON.parse(fs.readFileSync(defaultConfig, 'utf-8'));
+  let backup = {};
+  try { backup = JSON.parse(fs.readFileSync(backupFile, 'utf-8')); } catch {}
+
+  // 1. 从镜像默认配置恢复被 doctor 删除的 section
+  const sections = ['models', 'channels', 'tools', 'agents'];
+  for (const s of sections) {
+    if (!doctor[s] && defaults[s]) {
+      doctor[s] = JSON.parse(JSON.stringify(defaults[s]));
+      console.log('   ✅ 从镜像配置恢复: ' + s);
+    }
+  }
+
+  // 2. 从备份恢复真实凭据（非 placeholder）
+  // 飞书凭据
+  if (backup.feishu?.appId && !backup.feishu.appId.includes('PLACEHOLDER')) {
+    doctor.channels = doctor.channels || {};
+    doctor.channels.feishu = doctor.channels.feishu || {};
+    doctor.channels.feishu.appId = backup.feishu.appId;
+    doctor.channels.feishu.appSecret = backup.feishu.appSecret;
+    doctor.channels.feishu.domain = backup.feishu.domain;
+    doctor.channels.feishu.enabled = true;
     console.log('   ✅ 飞书凭据已恢复');
   }
 
-  // 恢复模型 provider API keys
-  if (saved.providers && c.models?.providers) {
-    for (const [name, provider] of Object.entries(saved.providers)) {
-      if (provider.apiKey && !provider.apiKey.includes('PLACEHOLDER') && c.models.providers[name]) {
-        c.models.providers[name].apiKey = provider.apiKey;
+  // API keys
+  if (backup.providers) {
+    doctor.models = doctor.models || {};
+    doctor.models.providers = doctor.models.providers || {};
+    for (const [name, provider] of Object.entries(backup.providers)) {
+      if (provider.apiKey && !provider.apiKey.includes('PLACEHOLDER')) {
+        if (doctor.models.providers[name]) {
+          doctor.models.providers[name].apiKey = provider.apiKey;
+        }
       }
     }
     console.log('   ✅ 模型 API keys 已恢复');
   }
 
+  // 3. 从镜像默认配置恢复 agents（model primary 等）
+  // 仅当 doctor 设置了非预期的默认模型时替换
+  if (defaults.agents?.defaults?.model) {
+    doctor.agents = doctor.agents || {};
+    doctor.agents.defaults = doctor.agents.defaults || {};
+    doctor.agents.defaults.model = defaults.agents.defaults.model;
+    if (defaults.agents.defaults.imageModel) doctor.agents.defaults.imageModel = defaults.agents.defaults.imageModel;
+    if (defaults.agents.defaults.contextTokens) doctor.agents.defaults.contextTokens = defaults.agents.defaults.contextTokens;
+    if (defaults.agents.defaults.sandbox) doctor.agents.defaults.sandbox = defaults.agents.defaults.sandbox;
+    console.log('   ✅ agents 模型配置已恢复: ' + doctor.agents.defaults.model.primary);
+  }
 
+  // 4. 强制注入 gateway 配置
+  doctor.gateway = doctor.gateway || {};
+  doctor.gateway.mode = 'local';
+  doctor.gateway.bind = 'lan';
+  console.log('   ✅ gateway.mode=local, bind=lan');
 
-  // 强制注入容器必需的 gateway 配置
-  c.gateway = c.gateway || {};
-  c.gateway.mode = 'local';
-  c.gateway.bind = 'lan';
-  console.log('   ✅ gateway.mode=local, bind=lan 已注入');
-
-  fs.writeFileSync(f, JSON.stringify(c, null, 2));
+  fs.writeFileSync(runtime, JSON.stringify(doctor, null, 2));
 } catch(e) { console.log('   ⚠️ 配置恢复失败:', e.message); }
 " 2>/dev/null || true
 
