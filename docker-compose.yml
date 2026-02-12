@@ -101,8 +101,12 @@ services:
       - OPENAI_BASE_URL=http://host.docker.internal:11434/v1
       - DATABASE_URL=postgresql://postgres:postgres@memu-postgres:5432/memu
       - TEMPORAL_HOST=memu-temporal:7233
+      - DEFAULT_EMBED_MODEL=nomic-embed-text
+      - DEFAULT_LLM_MODEL=nomic-embed-text
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+      - ./config/memu-main.py:/app/app/main.py:ro
     ports:
       - "8000:8000"
     restart: unless-stopped
