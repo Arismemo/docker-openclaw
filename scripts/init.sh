@@ -216,10 +216,14 @@ with open(f,"w") as fh:
 print("   ✅ schema: baseUrl + model enum")
 ' 2>/dev/null || true
 
-    # 层 2: TypeScript — 添加 nomic-embed-text 维度映射
-    if [ -f "$MEMORY_CONFIG_TS" ] && ! grep -q 'nomic-embed-text' "$MEMORY_CONFIG_TS"; then
-        sed -i 's/"text-embedding-3-large": 3072,/"text-embedding-3-large": 3072,\n  "nomic-embed-text": 768,/' "$MEMORY_CONFIG_TS" 2>/dev/null && \
-            echo "   ✅ config.ts: nomic-embed-text 维度" || true
+    # 层 2: config.ts — 添加 nomic-embed-text 维度 + 允许 baseUrl key
+    if [ -f "$MEMORY_CONFIG_TS" ]; then
+        if ! grep -q 'nomic-embed-text' "$MEMORY_CONFIG_TS"; then
+            sed -i 's/"text-embedding-3-large": 3072,/"text-embedding-3-large": 3072,\n  "nomic-embed-text": 768,/' "$MEMORY_CONFIG_TS" 2>/dev/null && \
+                echo "   ✅ config.ts: nomic-embed-text 维度" || true
+        fi
+        # 允许 embedding 配置中的 baseUrl key
+        sed -i 's/\["apiKey", "model"\], "embedding config"/["apiKey", "model", "baseUrl"], "embedding config"/' "$MEMORY_CONFIG_TS" 2>/dev/null
     fi
 
     # 层 3: index.ts — OpenAI SDK 构造函数支持 baseURL
