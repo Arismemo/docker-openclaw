@@ -279,12 +279,7 @@ try {
     console.log('   ✅ 模型 API keys 已恢复');
   }
 
-  // 恢复 agents 配置
-  if (saved.agents?.defaults) {
-    c.agents = c.agents || {};
-    c.agents.defaults = { ...c.agents.defaults, ...saved.agents.defaults };
-    console.log('   ✅ agents 配置已恢复');
-  }
+
 
   // 强制注入容器必需的 gateway 配置
   c.gateway = c.gateway || {};
