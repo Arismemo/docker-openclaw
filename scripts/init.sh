@@ -230,15 +230,21 @@ if [ -f "$FEISHU_MEDIA" ]; then
     fi
 fi
 
-# 确保 gateway 配置正确（容器必需）
+# 确保启动配置正确（gateway + 飞书插件）
 node -e "
 const fs = require('fs');
 const f = '$HOME/.openclaw/openclaw.json';
 try {
   const c = JSON.parse(fs.readFileSync(f, 'utf-8'));
+  // gateway 必须为 local + lan
   c.gateway = c.gateway || {};
   c.gateway.mode = 'local';
   c.gateway.bind = 'lan';
+  // 确保飞书插件启用
+  if (c.plugins?.entries?.feishu && !c.plugins.entries.feishu.enabled) {
+    c.plugins.entries.feishu.enabled = true;
+    console.log('   ✅ 飞书插件已启用');
+  }
   fs.writeFileSync(f, JSON.stringify(c, null, 2));
 } catch(e) {}
 " 2>/dev/null || true
