@@ -195,46 +195,17 @@ if [ -d "$CUSTOM_SKILLS_DIR" ]; then
 fi
 
 # patch memory-lancedb 支持 Ollama（每次启动都执行，因为镜像文件每次 docker run 都是新的）
-MEMORY_PLUGIN_JSON="/app/extensions/memory-lancedb/openclaw.plugin.json"
+# 注意：Ollama embedding 的路由通过 OPENAI_BASE_URL 环境变量实现，不修改源码
 MEMORY_CONFIG_TS="/app/extensions/memory-lancedb/config.ts"
-MEMORY_INDEX_TS="/app/extensions/memory-lancedb/index.ts"
-if [ -f "$MEMORY_PLUGIN_JSON" ]; then
+if [ -f "$MEMORY_CONFIG_TS" ]; then
     echo "🔧 patch memory-lancedb 支持 Ollama..."
-    # 层 1: JSON schema — 移除 model enum + 添加 baseUrl + 允许额外属性
-    python3 -c '
-import json
-f = "'"$MEMORY_PLUGIN_JSON"'"
-with open(f) as fh:
-    s = json.load(fh)
-emb = s.get("configSchema",{}).get("properties",{}).get("embedding",{})
-props = emb.get("properties",{})
-if "enum" in props.get("model",{}): del props["model"]["enum"]
-if "baseUrl" not in props: props["baseUrl"] = {"type": "string"}
-emb["additionalProperties"] = True
-with open(f,"w") as fh:
-    json.dump(s,fh,indent=2)
-print("   ✅ schema: baseUrl + model enum")
-' 2>/dev/null || true
-
-    # 层 2: config.ts — 添加 nomic-embed-text 维度 + 允许 baseUrl key
-    if [ -f "$MEMORY_CONFIG_TS" ]; then
-        if ! grep -q 'nomic-embed-text' "$MEMORY_CONFIG_TS"; then
-            sed -i 's/"text-embedding-3-large": 3072,/"text-embedding-3-large": 3072,\n  "nomic-embed-text": 768,/' "$MEMORY_CONFIG_TS" 2>/dev/null && \
-                echo "   ✅ config.ts: nomic-embed-text 维度" || true
-        fi
-        # 允许 embedding 配置中的 baseUrl key
-        sed -i 's/\["apiKey", "model"\], "embedding config"/["apiKey", "model", "baseUrl"], "embedding config"/' "$MEMORY_CONFIG_TS" 2>/dev/null
+    # 添加 nomic-embed-text 维度映射（Ollama 模型不在内置维度表中）
+    if ! grep -q 'nomic-embed-text' "$MEMORY_CONFIG_TS"; then
+        sed -i 's/"text-embedding-3-large": 3072,/"text-embedding-3-large": 3072,\n  "nomic-embed-text": 768,/' "$MEMORY_CONFIG_TS" 2>/dev/null && \
+            echo "   ✅ config.ts: nomic-embed-text 维度" || true
     fi
 
-    # 层 3: index.ts — OpenAI SDK 构造函数支持 baseURL
-    if [ -f "$MEMORY_INDEX_TS" ] && ! grep -q 'baseURL' "$MEMORY_INDEX_TS"; then
-        sed -i 's/this.client = new OpenAI({ apiKey });/this.client = new OpenAI({ apiKey, baseURL: (globalThis as any).__memoryBaseUrl || undefined });/' "$MEMORY_INDEX_TS"
-        # 在插件初始化处注入 baseUrl 到全局变量
-        sed -i 's/const embeddings = new Embeddings(cfg.embedding.apiKey, cfg.embedding.model!);/(globalThis as any).__memoryBaseUrl = (cfg.embedding as any).baseUrl; const embeddings = new Embeddings(cfg.embedding.apiKey, cfg.embedding.model!);/' "$MEMORY_INDEX_TS"
-        echo "   ✅ index.ts: OpenAI SDK baseURL" 2>/dev/null || true
-    fi
-
-    # 确保 memory-lancedb 配置存在（volume 中可能缺失）
+    # 确保 memory-lancedb 配置存在
     python3 -c '
 import json, os
 config_file = os.path.expanduser("~/.openclaw/openclaw.json")
@@ -242,14 +213,14 @@ with open(config_file) as f:
     config = json.load(f)
 plugins = config.setdefault("plugins", {})
 entries = plugins.setdefault("entries", {})
+need_write = False
 if "memory-lancedb" not in entries or not entries["memory-lancedb"].get("enabled"):
     entries["memory-lancedb"] = {
         "enabled": True,
         "config": {
             "embedding": {
-                "apiKey": os.environ.get("OPENAI_API_KEY", "ollama"),
-                "model": "nomic-embed-text",
-                "baseUrl": "http://172.17.0.1:11434/v1"
+                "apiKey": "ollama",
+                "model": "nomic-embed-text"
             },
             "autoCapture": True,
             "autoRecall": True
@@ -257,11 +228,25 @@ if "memory-lancedb" not in entries or not entries["memory-lancedb"].get("enabled
     }
     plugins["slots"] = plugins.get("slots", {})
     plugins["slots"]["memory"] = "memory-lancedb"
-    with open(config_file, "w") as f:
-        json.dump(config, f, indent=4, ensure_ascii=False)
+    need_write = True
     print("   ✅ memory-lancedb 配置已注入")
 else:
-    print("   ℹ️  memory-lancedb 配置已存在")
+    # 清理旧配置中的 baseUrl（现在通过 OPENAI_BASE_URL 环境变量控制）
+    emb = entries["memory-lancedb"].get("config", {}).get("embedding", {})
+    if "baseUrl" in emb:
+        del emb["baseUrl"]
+        need_write = True
+        print("   ✅ 清理旧的 baseUrl 配置")
+    # 确保 apiKey 不是 placeholder
+    if emb.get("apiKey", "").startswith("your_"):
+        emb["apiKey"] = "ollama"
+        need_write = True
+        print("   ✅ 修复 apiKey placeholder")
+    if not need_write:
+        print("   ℹ️  memory-lancedb 配置已存在")
+if need_write:
+    with open(config_file, "w") as f:
+        json.dump(config, f, indent=4, ensure_ascii=False)
 ' 2>/dev/null || true
 fi
 

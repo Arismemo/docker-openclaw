@@ -36,6 +36,7 @@ services:
       - HTTPS_PROXY=${HTTPS_PROXY:-}
       - NO_PROXY=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_BASE_URL=http://172.17.0.1:11434/v1
     restart: unless-stopped
 
   # OpenClaw 基础镜像构建（仅用于 build，不运行）
