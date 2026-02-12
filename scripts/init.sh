@@ -230,22 +230,70 @@ if [ -f "$FEISHU_MEDIA" ]; then
     fi
 fi
 
-# 自动修复配置问题
+# doctor --fix 会覆盖 openclaw.json，先保存关键凭据
 echo "🔧 运行 doctor --fix..."
-openclaw doctor --fix 2>/dev/null || true
-
-# doctor --fix 会覆盖 openclaw.json，需要重新注入容器必需的 gateway 配置
 node -e "
 const fs = require('fs');
 const f = '$HOME/.openclaw/openclaw.json';
+const backup = '$HOME/.openclaw/.credentials-backup.json';
 try {
   const c = JSON.parse(fs.readFileSync(f, 'utf-8'));
-  if (!c.gateway) c.gateway = {};
+  // 保存 doctor 会覆盖的关键配置
+  const saved = {
+    feishu: c.channels?.feishu || {},
+    providers: c.models?.providers || {},
+    agents: c.agents || {},
+    gateway: c.gateway || {}
+  };
+  fs.writeFileSync(backup, JSON.stringify(saved, null, 2));
+  console.log('   📦 关键凭据已备份');
+} catch(e) { console.log('   ⚠️ 备份失败:', e.message); }
+" 2>/dev/null || true
+
+openclaw doctor --fix 2>/dev/null || true
+
+# doctor --fix 后恢复关键凭据和容器必需的 gateway 配置
+node -e "
+const fs = require('fs');
+const f = '$HOME/.openclaw/openclaw.json';
+const backup = '$HOME/.openclaw/.credentials-backup.json';
+try {
+  const c = JSON.parse(fs.readFileSync(f, 'utf-8'));
+  const saved = JSON.parse(fs.readFileSync(backup, 'utf-8'));
+
+  // 恢复飞书凭据（如果 doctor 覆盖为 placeholder）
+  if (c.channels?.feishu?.appId?.includes('PLACEHOLDER') && !saved.feishu.appId?.includes('PLACEHOLDER')) {
+    c.channels.feishu.appId = saved.feishu.appId;
+    c.channels.feishu.appSecret = saved.feishu.appSecret;
+    c.channels.feishu.domain = saved.feishu.domain;
+    console.log('   ✅ 飞书凭据已恢复');
+  }
+
+  // 恢复模型 provider API keys
+  if (saved.providers && c.models?.providers) {
+    for (const [name, provider] of Object.entries(saved.providers)) {
+      if (provider.apiKey && !provider.apiKey.includes('PLACEHOLDER') && c.models.providers[name]) {
+        c.models.providers[name].apiKey = provider.apiKey;
+      }
+    }
+    console.log('   ✅ 模型 API keys 已恢复');
+  }
+
+  // 恢复 agents 配置
+  if (saved.agents?.defaults) {
+    c.agents = c.agents || {};
+    c.agents.defaults = { ...c.agents.defaults, ...saved.agents.defaults };
+    console.log('   ✅ agents 配置已恢复');
+  }
+
+  // 强制注入容器必需的 gateway 配置
+  c.gateway = c.gateway || {};
   c.gateway.mode = 'local';
   c.gateway.bind = 'lan';
-  fs.writeFileSync(f, JSON.stringify(c, null, 2));
   console.log('   ✅ gateway.mode=local, bind=lan 已注入');
-} catch(e) { console.log('   ⚠️ gateway 配置注入失败:', e.message); }
+
+  fs.writeFileSync(f, JSON.stringify(c, null, 2));
+} catch(e) { console.log('   ⚠️ 配置恢复失败:', e.message); }
 " 2>/dev/null || true
 
 # 读取或生成 Gateway Token（确保持久化，重启后不变）
