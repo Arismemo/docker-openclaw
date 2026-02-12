@@ -49,12 +49,8 @@ fi
 
 # 4. 显示 patched 的 llm_profiles 部分
 echo "📋 patched main.py llm_profiles:"
-grep -A5 'llm_profiles' "$MAIN_PY" | head -10
+grep -A8 'llm_profiles' "$MAIN_PY" | head -10
 
-# 5. 启动 gunicorn (增加 timeout 到 120 秒，给 initialize_categories 足够时间)
-echo "🚀 启动 gunicorn..."
-exec gunicorn app.main:app \
-    -k uvicorn.workers.UvicornWorker \
-    --bind 0.0.0.0:8000 \
-    --timeout 120 \
-    --graceful-timeout 30
+# 5. 使用 uvicorn 直接启动，避免 gunicorn worker boot 的 asyncio.run 兼容性问题
+echo "🚀 启动 uvicorn..."
+exec python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
