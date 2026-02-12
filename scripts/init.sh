@@ -212,28 +212,52 @@ SOUL_EOF
     echo "📝 SOUL.md: 已添加 gemini-image-gen 指引"
 fi
 
+# 安装 memU 记忆系统脚本到 bot 的 .openclaw 目录
+MEMU_SCRIPTS_DIR="/home/node/.openclaw/scripts"
+mkdir -p "$MEMU_SCRIPTS_DIR"
+
+cat > "$MEMU_SCRIPTS_DIR/memu-memorize.sh" << 'MEMORIZE_SCRIPT'
+#!/bin/sh
+MEMU_URL="${MEMU_URL:-http://172.17.0.1:8000}"
+USER_ID=""; INPUT=""
+while [ "$#" -gt 0 ]; do
+    case "$1" in --user-id) USER_ID="$2"; shift 2 ;; --input) INPUT="$2"; shift 2 ;; *) shift ;; esac
+done
+[ -z "$INPUT" ] && echo "错误: 缺少 --input" >&2 && exit 1
+curl -s -m 30 -X POST "${MEMU_URL}/memorize" -H "Content-Type: application/json" \
+    -d "{\"content\": $INPUT, \"user\": {\"user_id\": \"${USER_ID:-default}\"}}"
+MEMORIZE_SCRIPT
+chmod +x "$MEMU_SCRIPTS_DIR/memu-memorize.sh"
+
+cat > "$MEMU_SCRIPTS_DIR/memu-retrieve.sh" << 'RETRIEVE_SCRIPT'
+#!/bin/sh
+MEMU_URL="${MEMU_URL:-http://172.17.0.1:8000}"
+USER_ID=""; QUERY=""
+while [ "$#" -gt 0 ]; do
+    case "$1" in --user-id) USER_ID="$2"; shift 2 ;; --query) QUERY="$2"; shift 2 ;; *) shift ;; esac
+done
+[ -z "$QUERY" ] && echo "错误: 缺少 --query" >&2 && exit 1
+curl -s -m 15 -X POST "${MEMU_URL}/retrieve" -H "Content-Type: application/json" \
+    -d "{\"query\": \"$QUERY\", \"user\": {\"user_id\": \"${USER_ID:-default}\"}}"
+RETRIEVE_SCRIPT
+chmod +x "$MEMU_SCRIPTS_DIR/memu-retrieve.sh"
+echo "📦 memU 脚本已安装到 $MEMU_SCRIPTS_DIR"
+
 # 确保 SOUL.md 包含 memU 记忆系统指引
 if [ -f "$SOUL_FILE" ] && ! grep -q 'memu' "$SOUL_FILE"; then
     cat >> "$SOUL_FILE" << 'MEMU_EOF'
 
 ### 长期记忆（memU）
-你拥有 memU 长期记忆系统。通过 `memu` skill 存储和检索跨 session 的记忆。
+你拥有 memU 长期记忆系统，可存储和检索跨 session 的记忆。
 
-**自动存储**：当对话中出现以下内容时，主动调用 memorize 存储：
-- 用户偏好、习惯、喜好
-- 重要事实、人物关系
-- 用户明确要求你记住的内容
-
+**自动存储**：当对话中出现用户偏好、重要事实、或用户要求记住的内容时，主动调用：
 ```bash
-python3 {memu baseDir}/scripts/memorize.py --user-id dolores --input '<对话JSON>'
+sh /home/node/.openclaw/scripts/memu-memorize.sh --user-id "$USER_ID" --input '[{"role":"user","content":"..."},{"role":"assistant","content":"..."}]'
 ```
 
-**自动检索**：在以下场景主动调用 retrieve：
-- 新 session 开始时，检索该用户的近期记忆
-- 用户提到"你还记得"或引用历史对话
-
+**自动检索**：在新 session 开始、或用户提到"你还记得"时，主动调用：
 ```bash
-python3 {memu baseDir}/scripts/retrieve.py --user-id dolores --query "查询内容"
+sh /home/node/.openclaw/scripts/memu-retrieve.sh --user-id "$USER_ID" --query "查询内容"
 ```
 MEMU_EOF
     echo "📝 SOUL.md: 已添加 memU 记忆系统指引"
