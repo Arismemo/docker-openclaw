@@ -39,14 +39,14 @@
                 ]
             },
             "zhipu": {
-                "baseUrl": "https://open.bigmodel.cn/api/paas/v4",
+                "baseUrl": "https://open.bigmodel.cn/api/coding/paas/v4",
                 "apiKey": "ZHIPU_API_KEY_PLACEHOLDER",
                 "api": "openai-completions",
                 "models": [
                     {
                         "id": "glm-5",
                         "name": "GLM 5",
-                        "reasoning": true,
+                        "reasoning": false,
                         "contextWindow": 128000,
                         "maxTokens": 16384
                     },
