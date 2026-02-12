@@ -4,6 +4,7 @@
 
 MAIN_PY="/app/app/main.py"
 EMBED_MODEL="${DEFAULT_EMBED_MODEL:-nomic-embed-text}"
+CHAT_MODEL="${DEFAULT_LLM_MODEL:-qwen2.5:0.5b}"
 OLLAMA_URL="${OPENAI_BASE_URL:-http://host.docker.internal:11434/v1}"
 
 # 1. 等待 Ollama 可用
@@ -38,10 +39,13 @@ except Exception as e:
     print(f'⚠️  预热失败: {e}')
 " 2>&1
 
-# 3. Patch main.py 注入 embed_model
+# 3. Patch main.py 注入 embed_model 和 chat_model
 if ! grep -q 'embed_model' "$MAIN_PY"; then
-    echo "🔧 patch memU main.py: 注入 embed_model=$EMBED_MODEL"
+    echo "🔧 patch memU main.py: embed_model=$EMBED_MODEL, chat_model=$CHAT_MODEL"
+    # 在 "model": ... 行后插入 embed_model
     sed -i "/\"model\": os.getenv/a\\            \"embed_model\": \"$EMBED_MODEL\"," "$MAIN_PY"
+    # 替换默认 chat model 为 Ollama 上的模型
+    sed -i "s/gpt-4o-mini/$CHAT_MODEL/g" "$MAIN_PY"
     echo "   ✅ patch 完成"
 else
     echo "ℹ️  embed_model 已存在，跳过 patch"
