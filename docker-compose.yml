@@ -47,3 +47,63 @@ services:
     profiles:
       - build
     command: ["echo", "✅ OpenClaw 基础镜像构建完成"]
+
+  # === memU 记忆服务栈 ===
+
+  # PostgreSQL + pgvector（memU 向量存储）
+  memu-postgres:
+    image: pgvector/pgvector:pg16
+    container_name: memu-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: memu
+    ports:
+      - "5432:5432"
+    volumes:
+      - memu-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Temporal（memU 异步任务调度）
+  memu-temporal:
+    image: temporalio/auto-setup:1.25.1
+    container_name: memu-temporal
+    depends_on:
+      memu-postgres:
+        condition: service_healthy
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PWD=postgres
+      - POSTGRES_SEEDS=memu-postgres
+      - POSTGRES_DB=temporal
+    ports:
+      - "7233:7233"
+    restart: unless-stopped
+
+  # memU API 服务
+  memu-server:
+    image: nevamindai/memu-server:latest
+    container_name: memu-server
+    depends_on:
+      memu-postgres:
+        condition: service_healthy
+      memu-temporal:
+        condition: service_started
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-placeholder}
+      - DATABASE_URL=postgresql://postgres:postgres@memu-postgres:5432/memu
+      - TEMPORAL_HOST=memu-temporal:7233
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+volumes:
+  memu-postgres-data:
+    driver: local

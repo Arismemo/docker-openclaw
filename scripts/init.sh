@@ -212,6 +212,33 @@ SOUL_EOF
     echo "📝 SOUL.md: 已添加 gemini-image-gen 指引"
 fi
 
+# 确保 SOUL.md 包含 memU 记忆系统指引
+if [ -f "$SOUL_FILE" ] && ! grep -q 'memu' "$SOUL_FILE"; then
+    cat >> "$SOUL_FILE" << 'MEMU_EOF'
+
+### 长期记忆（memU）
+你拥有 memU 长期记忆系统。通过 `memu` skill 存储和检索跨 session 的记忆。
+
+**自动存储**：当对话中出现以下内容时，主动调用 memorize 存储：
+- 用户偏好、习惯、喜好
+- 重要事实、人物关系
+- 用户明确要求你记住的内容
+
+```bash
+python3 {memu baseDir}/scripts/memorize.py --user-id dolores --input '<对话JSON>'
+```
+
+**自动检索**：在以下场景主动调用 retrieve：
+- 新 session 开始时，检索该用户的近期记忆
+- 用户提到"你还记得"或引用历史对话
+
+```bash
+python3 {memu baseDir}/scripts/retrieve.py --user-id dolores --query "查询内容"
+```
+MEMU_EOF
+    echo "📝 SOUL.md: 已添加 memU 记忆系统指引"
+fi
+
 # 启动 Gateway（前台运行模式，适用于容器环境）
 echo "🚀 启动 OpenClaw Gateway..."
 exec openclaw gateway run \
