@@ -55,89 +55,29 @@ if [ ! -f "$INIT_MARKER" ]; then
         done
     fi
 
-    # 启用内置 memory-lancedb 长期记忆插件（LanceDB 向量存储 + 自动记忆）
-    echo "📦 启用 memory-lancedb 记忆插件..."
-
-    # patch 插件以支持 Ollama embedding（3 层 patch）
-    echo "   🔧 patch memory-lancedb 支持 Ollama..."
-
-    # 层 1: patch JSON schema — 移除 model enum + 添加 baseUrl 字段
-    python3 -c '
-import json, os
-schema_file = "/app/extensions/memory-lancedb/openclaw.plugin.json"
-if os.path.exists(schema_file):
-    with open(schema_file) as f:
-        schema = json.load(f)
-    emb = schema.get("configSchema", {}).get("properties", {}).get("embedding", {})
-    emb_props = emb.get("properties", {})
-    # 移除 model enum 限制
-    if "enum" in emb_props.get("model", {}):
-        del emb_props["model"]["enum"]
-    # 添加 baseUrl 字段
-    if "baseUrl" not in emb_props:
-        emb_props["baseUrl"] = {"type": "string"}
-    # 允许额外属性
-    emb["additionalProperties"] = True
-    with open(schema_file, "w") as f:
-        json.dump(schema, f, indent=2)
-    print("   ✅ JSON schema: 已 patch（baseUrl + model enum）")
-else:
-    print("   ⚠️ openclaw.plugin.json 不存在")
-' || echo "   ⚠️ JSON schema patch 失败"
-
-    # 层 2: patch TypeScript — 添加 nomic-embed-text 维度映射
-    MEMORY_CONFIG_TS="/app/extensions/memory-lancedb/config.ts"
-    if [ -f "$MEMORY_CONFIG_TS" ]; then
-        if ! grep -q 'nomic-embed-text' "$MEMORY_CONFIG_TS"; then
-            sed -i 's/"text-embedding-3-large": 3072,/"text-embedding-3-large": 3072,\n  "nomic-embed-text": 768,/' "$MEMORY_CONFIG_TS"
-            echo "   ✅ TypeScript: 已添加 nomic-embed-text 维度"
-        else
-            echo "   ℹ️  TypeScript: nomic-embed-text 已存在"
-        fi
-    fi
-
-    # 层 3: patch index.ts — OpenAI SDK 构造函数支持 baseURL
-    MEMORY_INDEX_TS="/app/extensions/memory-lancedb/index.ts"
-    if [ -f "$MEMORY_INDEX_TS" ]; then
-        if ! grep -q 'baseURL' "$MEMORY_INDEX_TS"; then
-            # 修改 Embeddings 构造函数：接受 baseUrl 参数并传给 OpenAI SDK
-            sed -i 's/constructor(/constructor(\n    baseUrl: string | undefined,/' "$MEMORY_INDEX_TS"
-            sed -i 's/this.client = new OpenAI({ apiKey });/this.client = new OpenAI({ apiKey, baseURL: baseUrl || undefined });/' "$MEMORY_INDEX_TS"
-            # 修改调用处：传入 baseUrl
-            sed -i 's/new Embeddings(cfg.embedding.apiKey, cfg.embedding.model!)/new Embeddings((cfg.embedding as any).baseUrl, cfg.embedding.apiKey, cfg.embedding.model!)/' "$MEMORY_INDEX_TS"
-            echo "   ✅ index.ts: OpenAI SDK 已支持 baseURL"
-        else
-            echo "   ℹ️  index.ts: baseURL 已存在"
-        fi
-    fi
-
-    # 注入 embedding 配置并启用插件
+    # 注入 memorySearch 配置（使用 Ollama nomic-embed-text 做本地 embedding 向量搜索）
     python3 -c '
 import json, os
 config_file = os.path.expanduser("~/.openclaw/openclaw.json")
 with open(config_file) as f:
     config = json.load(f)
-if "plugins" not in config:
-    config["plugins"] = {}
-entries = config["plugins"].setdefault("entries", {})
-entries["memory-lancedb"] = {
-    "enabled": True,
-    "config": {
-        "embedding": {
-            "apiKey": os.environ.get("OPENAI_API_KEY", "ollama"),
-            "model": "nomic-embed-text",
-            "baseUrl": "http://172.17.0.1:11434/v1"
-        },
-        "autoCapture": True,
-        "autoRecall": True
+agents = config.setdefault("agents", {})
+defaults = agents.setdefault("defaults", {})
+if "memorySearch" not in defaults:
+    defaults["memorySearch"] = {
+        "provider": "openai",
+        "model": "nomic-embed-text",
+        "remote": {
+            "baseUrl": "http://172.17.0.1:11434/v1/",
+            "apiKey": "ollama"
+        }
     }
-}
-config["plugins"]["slots"] = config["plugins"].get("slots", {})
-config["plugins"]["slots"]["memory"] = "memory-lancedb"
-with open(config_file, "w") as f:
-    json.dump(config, f, indent=4, ensure_ascii=False)
-print("   ✅ memory-lancedb 配置已注入（Ollama nomic-embed-text）")
-' || echo "   ⚠️ memory-lancedb 配置注入失败"
+    with open(config_file, "w") as f:
+        json.dump(config, f, indent=4, ensure_ascii=False)
+    print("   ✅ memorySearch 配置已注入（Ollama nomic-embed-text）")
+else:
+    print("   ℹ️  memorySearch 配置已存在")
+' || echo "   ⚠️ memorySearch 配置注入失败"
 
     # 向 AGENTS.md 追加教程触发规则
     AGENTS_FILE="$HOME/.openclaw/workspace/AGENTS.md"
@@ -192,62 +132,6 @@ if [ -d "$CUSTOM_SKILLS_DIR" ]; then
         cp -r "$skill_dir" "$target"
         echo "   ✅ 同步: $skill_name"
     done
-fi
-
-# patch memory-lancedb 支持 Ollama（每次启动都执行，因为镜像文件每次 docker run 都是新的）
-# 注意：Ollama embedding 的路由通过 OPENAI_BASE_URL 环境变量实现，不修改源码
-MEMORY_CONFIG_TS="/app/extensions/memory-lancedb/config.ts"
-if [ -f "$MEMORY_CONFIG_TS" ]; then
-    echo "🔧 patch memory-lancedb 支持 Ollama..."
-    # 添加 nomic-embed-text 维度映射（Ollama 模型不在内置维度表中）
-    if ! grep -q 'nomic-embed-text' "$MEMORY_CONFIG_TS"; then
-        sed -i 's/"text-embedding-3-large": 3072,/"text-embedding-3-large": 3072,\n  "nomic-embed-text": 768,/' "$MEMORY_CONFIG_TS" 2>/dev/null && \
-            echo "   ✅ config.ts: nomic-embed-text 维度" || true
-    fi
-
-    # 确保 memory-lancedb 配置存在
-    python3 -c '
-import json, os
-config_file = os.path.expanduser("~/.openclaw/openclaw.json")
-with open(config_file) as f:
-    config = json.load(f)
-plugins = config.setdefault("plugins", {})
-entries = plugins.setdefault("entries", {})
-need_write = False
-if "memory-lancedb" not in entries or not entries["memory-lancedb"].get("enabled"):
-    entries["memory-lancedb"] = {
-        "enabled": True,
-        "config": {
-            "embedding": {
-                "apiKey": "ollama",
-                "model": "nomic-embed-text"
-            },
-            "autoCapture": True,
-            "autoRecall": True
-        }
-    }
-    plugins["slots"] = plugins.get("slots", {})
-    plugins["slots"]["memory"] = "memory-lancedb"
-    need_write = True
-    print("   ✅ memory-lancedb 配置已注入")
-else:
-    # 清理旧配置中的 baseUrl（现在通过 OPENAI_BASE_URL 环境变量控制）
-    emb = entries["memory-lancedb"].get("config", {}).get("embedding", {})
-    if "baseUrl" in emb:
-        del emb["baseUrl"]
-        need_write = True
-        print("   ✅ 清理旧的 baseUrl 配置")
-    # 确保 apiKey 不是 placeholder
-    if emb.get("apiKey", "").startswith("your_"):
-        emb["apiKey"] = "ollama"
-        need_write = True
-        print("   ✅ 修复 apiKey placeholder")
-    if not need_write:
-        print("   ℹ️  memory-lancedb 配置已存在")
-if need_write:
-    with open(config_file, "w") as f:
-        json.dump(config, f, indent=4, ensure_ascii=False)
-' 2>/dev/null || true
 fi
 
 # patch 飞书 media.ts：修复图片上传 Readable.from(buffer) 兼容性问题
