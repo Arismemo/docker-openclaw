@@ -97,7 +97,8 @@ services:
       memu-temporal:
         condition: service_started
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-placeholder}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-ollama}
+      - OPENAI_BASE_URL=http://172.17.0.1:11434/v1
       - DATABASE_URL=postgresql://postgres:postgres@memu-postgres:5432/memu
       - TEMPORAL_HOST=memu-temporal:7233
       - HTTP_PROXY=${HTTP_PROXY:-}
