@@ -103,7 +103,7 @@ services:
       - TEMPORAL_HOST=memu-temporal:7233
       - HTTP_PROXY=${HTTP_PROXY:-}
       - HTTPS_PROXY=${HTTPS_PROXY:-}
-      - NO_PROXY=memu-postgres,memu-temporal,localhost,127.0.0.1
+      - NO_PROXY=memu-postgres,memu-temporal,172.17.0.1,localhost,127.0.0.1
     ports:
       - "8000:8000"
     restart: unless-stopped
