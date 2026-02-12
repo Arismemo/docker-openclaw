@@ -10,6 +10,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict
 
+import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from memu.app import MemoryService
@@ -19,8 +20,10 @@ app = FastAPI()
 # 从环境变量获取配置
 api_key = os.getenv("OPENAI_API_KEY", "ollama")
 base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-chat_model = os.getenv("DEFAULT_LLM_MODEL", "qwen2.5:0.5b")
+chat_model = os.getenv("DEFAULT_LLM_MODEL", "qwen2.5:1.5b")
 embed_model = os.getenv("DEFAULT_EMBED_MODEL", "nomic-embed-text")
+
+print(f"🔧 memU 配置: base_url={base_url}, chat={chat_model}, embed={embed_model}")
 
 # 初始化 MemoryService，传入完整的 llm_config
 service = MemoryService(
@@ -31,6 +34,12 @@ service = MemoryService(
         "embed_model": embed_model,
     }
 )
+
+# 修改 OpenAI SDK client 的超时设置
+# Ollama 在 CPU-only 服务器上串行推理，并行请求排队时 connect 会等待
+# 默认 connect=5s 太短，改为 connect=60s, read=300s
+service.openai.client.timeout = httpx.Timeout(connect=60.0, read=300.0, write=300.0, pool=300.0)
+print(f"⏱️  OpenAI SDK timeout 已设为: {service.openai.client.timeout}")
 
 # 对话文件存储目录
 storage_dir = Path(os.getenv("MEMU_STORAGE_DIR", "./data"))
