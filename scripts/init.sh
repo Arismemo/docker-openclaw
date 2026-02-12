@@ -26,8 +26,6 @@ if [ ! -f "$INIT_MARKER" ]; then
     # 启用飞书渠道插件（已内置，仅需启用）
     echo "📦 启用飞书渠道插件..."
     openclaw plugins enable feishu 2>/dev/null || echo "   ⚠️ 飞书插件启用失败，稍后可手动启用"
-    # 立即应用配置变更（启用飞书等）
-    openclaw doctor --fix 2>/dev/null || true
 
     # 通过 ClawHub 安装外部技能
     echo "📦 安装 ClawHub 外部技能..."
@@ -196,36 +194,40 @@ if [ -d "$CUSTOM_SKILLS_DIR" ]; then
     done
 fi
 
-# patch memory-lancedb 模型白名单（每次启动都执行，因为 upgrade 会重置插件文件）
+# patch memory-lancedb 支持 Ollama（每次启动都执行，因为镜像文件每次 docker run 都是新的）
 MEMORY_PLUGIN_JSON="/app/extensions/memory-lancedb/openclaw.plugin.json"
 MEMORY_CONFIG_TS="/app/extensions/memory-lancedb/config.ts"
-if [ -f "$MEMORY_PLUGIN_JSON" ] || [ -f "$MEMORY_CONFIG_TS" ]; then
-    echo "🔧 patch memory-lancedb 模型白名单..."
-    # 1) JSON schema: 移除 model enum 限制
-    if [ -f "$MEMORY_PLUGIN_JSON" ]; then
-        python3 -c '
+MEMORY_INDEX_TS="/app/extensions/memory-lancedb/index.ts"
+if [ -f "$MEMORY_PLUGIN_JSON" ]; then
+    echo "🔧 patch memory-lancedb 支持 Ollama..."
+    # 层 1: JSON schema — 移除 model enum + 添加 baseUrl + 允许额外属性
+    python3 -c '
 import json
 f = "'"$MEMORY_PLUGIN_JSON"'"
 with open(f) as fh:
     s = json.load(fh)
-m = s.get("configSchema",{}).get("properties",{}).get("embedding",{}).get("properties",{}).get("model",{})
-if "enum" in m:
-    del m["enum"]
-    with open(f,"w") as fh:
-        json.dump(s,fh,indent=2)
-    print("   ✅ JSON schema: model enum 已移除")
-else:
-    print("   ℹ️  JSON schema: enum 已不存在，跳过")
+emb = s.get("configSchema",{}).get("properties",{}).get("embedding",{})
+props = emb.get("properties",{})
+if "enum" in props.get("model",{}): del props["model"]["enum"]
+if "baseUrl" not in props: props["baseUrl"] = {"type": "string"}
+emb["additionalProperties"] = True
+with open(f,"w") as fh:
+    json.dump(s,fh,indent=2)
+print("   ✅ schema: baseUrl + model enum")
 ' 2>/dev/null || true
+
+    # 层 2: TypeScript — 添加 nomic-embed-text 维度映射
+    if [ -f "$MEMORY_CONFIG_TS" ] && ! grep -q 'nomic-embed-text' "$MEMORY_CONFIG_TS"; then
+        sed -i 's/"text-embedding-3-large": 3072,/"text-embedding-3-large": 3072,\n  "nomic-embed-text": 768,/' "$MEMORY_CONFIG_TS" 2>/dev/null && \
+            echo "   ✅ config.ts: nomic-embed-text 维度" || true
     fi
-    # 2) TypeScript: 添加 nomic-embed-text 到白名单
-    if [ -f "$MEMORY_CONFIG_TS" ]; then
-        if ! grep -q 'nomic-embed-text' "$MEMORY_CONFIG_TS"; then
-            sed -i 's/const EMBEDDING_DIMENSIONS.*{/&\n  "nomic-embed-text": 768,/' "$MEMORY_CONFIG_TS" 2>/dev/null && \
-                echo "   ✅ TypeScript: 已添加 nomic-embed-text" || true
-        else
-            echo "   ℹ️  TypeScript: nomic-embed-text 已存在，跳过"
-        fi
+
+    # 层 3: index.ts — OpenAI SDK 构造函数支持 baseURL
+    if [ -f "$MEMORY_INDEX_TS" ] && ! grep -q 'baseURL' "$MEMORY_INDEX_TS"; then
+        sed -i 's/this.client = new OpenAI({ apiKey });/this.client = new OpenAI({ apiKey, baseURL: (globalThis as any).__memoryBaseUrl || undefined });/' "$MEMORY_INDEX_TS"
+        # 在插件初始化处注入 baseUrl 到全局变量
+        sed -i 's/const embeddings = new Embeddings(cfg.embedding.apiKey, cfg.embedding.model!);/(globalThis as any).__memoryBaseUrl = (cfg.embedding as any).baseUrl; const embeddings = new Embeddings(cfg.embedding.apiKey, cfg.embedding.model!);/' "$MEMORY_INDEX_TS"
+        echo "   ✅ index.ts: OpenAI SDK baseURL" 2>/dev/null || true
     fi
 fi
 
