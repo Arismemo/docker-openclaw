@@ -243,7 +243,8 @@ try {
     providers: c.models?.providers || {},
     agents: c.agents || {},
     gateway: c.gateway || {},
-    tools: c.tools || {}
+    tools: c.tools || {},
+    plugins: c.plugins || {}
   };
   fs.writeFileSync(backup, JSON.stringify(saved, null, 2));
   console.log('   📦 关键凭据已备份');
@@ -325,7 +326,28 @@ try {
     console.log('   ✅ agents 模型配置已恢复: ' + doctor.agents.defaults.model.primary);
   }
 
-  // 4. 强制注入 gateway 配置
+  // 4. 从备份恢复 plugins 配置（doctor 会禁用 feishu 等插件）
+  if (backup.plugins) {
+    doctor.plugins = doctor.plugins || {};
+    doctor.plugins.entries = doctor.plugins.entries || {};
+    doctor.plugins.slots = doctor.plugins.slots || {};
+    // 合并备份中的 plugin entries（不覆盖 doctor 新增的）
+    for (const [name, entry] of Object.entries(backup.plugins.entries || {})) {
+      if (!doctor.plugins.entries[name]) {
+        doctor.plugins.entries[name] = entry;
+      } else if (entry.enabled && !doctor.plugins.entries[name].enabled) {
+        doctor.plugins.entries[name].enabled = true;
+        if (entry.config) doctor.plugins.entries[name].config = entry.config;
+      }
+    }
+    // 恢复 slots
+    if (backup.plugins.slots) {
+      Object.assign(doctor.plugins.slots, backup.plugins.slots);
+    }
+    console.log('   ✅ plugins 配置已恢复');
+  }
+
+  // 5. 强制注入 gateway 配置
   doctor.gateway = doctor.gateway || {};
   doctor.gateway.mode = 'local';
   doctor.gateway.bind = 'lan';
