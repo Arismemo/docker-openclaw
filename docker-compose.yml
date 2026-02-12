@@ -101,9 +101,6 @@ services:
       - OPENAI_BASE_URL=http://172.17.0.1:11434/v1
       - DATABASE_URL=postgresql://postgres:postgres@memu-postgres:5432/memu
       - TEMPORAL_HOST=memu-temporal:7233
-      - HTTP_PROXY=${HTTP_PROXY:-}
-      - HTTPS_PROXY=${HTTPS_PROXY:-}
-      - NO_PROXY=memu-postgres,memu-temporal,172.17.0.1,localhost,127.0.0.1
     ports:
       - "8000:8000"
     restart: unless-stopped
