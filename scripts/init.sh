@@ -326,6 +326,23 @@ try {
 " 2>/dev/null || true
 fi
 
+# 确保 SOUL.md 包含 gemini-image-gen 使用指引
+SOUL_FILE="$HOME/.openclaw/workspace/SOUL.md"
+if [ -f "$SOUL_FILE" ] && ! grep -q 'gemini-image-gen' "$SOUL_FILE"; then
+    cat >> "$SOUL_FILE" << 'SOUL_EOF'
+
+## 工具使用
+
+### 图片生成
+当用户要求画图/生成图片时，**必须使用 `gemini-image-gen` skill**（不是 openai-image-gen）。
+调用方式：
+```bash
+python3 {baseDir}/scripts/gen.py --prompt "描述内容"
+```
+SOUL_EOF
+    echo "📝 SOUL.md: 已添加 gemini-image-gen 指引"
+fi
+
 # 启动 Gateway（前台运行模式，适用于容器环境）
 echo "🚀 启动 OpenClaw Gateway..."
 exec openclaw gateway run \
