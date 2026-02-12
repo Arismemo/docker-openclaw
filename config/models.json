@@ -4,7 +4,7 @@
         "name": "智谱 GLM-4.7",
         "provider": "zhipu",
         "modelId": "glm-4.7",
-        "baseUrl": "https://open.bigmodel.cn/api/coding/paas/v4",
+        "baseUrl": "https://open.bigmodel.cn/api/paas/v4",
         "api": "openai-completions",
         "contextWindow": 128000,
         "maxTokens": 8192,
