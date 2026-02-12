@@ -98,9 +98,11 @@ services:
         condition: service_started
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-ollama}
-      - OPENAI_BASE_URL=http://172.17.0.1:11434/v1
+      - OPENAI_BASE_URL=http://host.docker.internal:11434/v1
       - DATABASE_URL=postgresql://postgres:postgres@memu-postgres:5432/memu
       - TEMPORAL_HOST=memu-temporal:7233
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8000:8000"
     restart: unless-stopped
