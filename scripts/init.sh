@@ -229,6 +229,36 @@ print("   ✅ schema: baseUrl + model enum")
         sed -i 's/const embeddings = new Embeddings(cfg.embedding.apiKey, cfg.embedding.model!);/(globalThis as any).__memoryBaseUrl = (cfg.embedding as any).baseUrl; const embeddings = new Embeddings(cfg.embedding.apiKey, cfg.embedding.model!);/' "$MEMORY_INDEX_TS"
         echo "   ✅ index.ts: OpenAI SDK baseURL" 2>/dev/null || true
     fi
+
+    # 确保 memory-lancedb 配置存在（volume 中可能缺失）
+    python3 -c '
+import json, os
+config_file = os.path.expanduser("~/.openclaw/openclaw.json")
+with open(config_file) as f:
+    config = json.load(f)
+plugins = config.setdefault("plugins", {})
+entries = plugins.setdefault("entries", {})
+if "memory-lancedb" not in entries or not entries["memory-lancedb"].get("enabled"):
+    entries["memory-lancedb"] = {
+        "enabled": True,
+        "config": {
+            "embedding": {
+                "apiKey": os.environ.get("OPENAI_API_KEY", "ollama"),
+                "model": "nomic-embed-text",
+                "baseUrl": "http://172.17.0.1:11434/v1"
+            },
+            "autoCapture": True,
+            "autoRecall": True
+        }
+    }
+    plugins["slots"] = plugins.get("slots", {})
+    plugins["slots"]["memory"] = "memory-lancedb"
+    with open(config_file, "w") as f:
+        json.dump(config, f, indent=4, ensure_ascii=False)
+    print("   ✅ memory-lancedb 配置已注入")
+else:
+    print("   ℹ️  memory-lancedb 配置已存在")
+' 2>/dev/null || true
 fi
 
 # patch 飞书 media.ts：修复图片上传 Readable.from(buffer) 兼容性问题
