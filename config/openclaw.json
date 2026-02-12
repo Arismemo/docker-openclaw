@@ -14,6 +14,14 @@
             "contextTokens": 128000,
             "sandbox": {
                 "mode": "non-main"
+            },
+            "memorySearch": {
+                "provider": "openai",
+                "model": "nomic-embed-text",
+                "remote": {
+                    "baseUrl": "http://172.17.0.1:11434/v1/",
+                    "apiKey": "ollama"
+                }
             }
         }
     },
