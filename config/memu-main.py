@@ -25,7 +25,7 @@ embed_model = os.getenv("DEFAULT_EMBED_MODEL", "nomic-embed-text")
 
 # Zhipu 用于 chat/summarize
 zhipu_api_key = os.getenv("ZHIPU_API_KEY", "")
-zhipu_base_url = os.getenv("ZHIPU_BASE_URL", "https://open.bigmodel.cn/api/paas/v4")
+zhipu_base_url = os.getenv("ZHIPU_BASE_URL", "https://open.bigmodel.cn/api/coding/paas/v4")
 chat_model = os.getenv("DEFAULT_LLM_MODEL", "glm-4.5-air")
 
 print(f"🔧 memU hybrid 配置:")
