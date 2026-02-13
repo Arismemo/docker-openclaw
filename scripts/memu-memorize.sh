@@ -25,7 +25,7 @@ PAYLOAD=$(cat <<EOF
 EOF
 )
 
-RESPONSE=$(curl -s -m 30 -X POST "${MEMU_URL}/memorize" \
+RESPONSE=$(curl -s -m 120 -X POST "${MEMU_URL}/memorize" \
     -H "Content-Type: application/json" \
     -d "$PAYLOAD" 2>&1)
 

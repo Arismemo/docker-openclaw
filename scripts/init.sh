@@ -224,7 +224,7 @@ while [ "$#" -gt 0 ]; do
     case "$1" in --user-id) USER_ID="$2"; shift 2 ;; --input) INPUT="$2"; shift 2 ;; *) shift ;; esac
 done
 [ -z "$INPUT" ] && echo "错误: 缺少 --input" >&2 && exit 1
-curl -s -m 30 -X POST "${MEMU_URL}/memorize" -H "Content-Type: application/json" \
+curl -s -m 120 -X POST "${MEMU_URL}/memorize" -H "Content-Type: application/json" \
     -d "{\"content\": $INPUT, \"user\": {\"user_id\": \"${USER_ID:-default}\"}}"
 MEMORIZE_SCRIPT
 chmod +x "$MEMU_SCRIPTS_DIR/memu-memorize.sh"
