@@ -49,8 +49,7 @@ if [ ! -f "$INIT_MARKER" ]; then
             skill_name=$(basename "$skill_dir")
             target="$WORKSPACE_SKILLS/$skill_name"
             if [ ! -e "$target" ]; then
-                cp -r "$skill_dir" "$target"
-                echo "   ✅ 链接: $skill_name"
+                cp -r "$skill_dir" "$target" 2>/dev/null && echo "   ✅ 链接: $skill_name" || echo "   ⚠️ 链接失败: $skill_name"
             fi
         done
     fi
@@ -129,8 +128,7 @@ if [ -d "$CUSTOM_SKILLS_DIR" ]; then
         target="$WORKSPACE_SKILLS/$skill_name"
         # 每次都覆盖，确保 skill 代码与镜像同步
         rm -rf "$target" 2>/dev/null
-        cp -r "$skill_dir" "$target"
-        echo "   ✅ 同步: $skill_name"
+        cp -r "$skill_dir" "$target" 2>/dev/null && echo "   ✅ 同步: $skill_name" || echo "   ⚠️ 同步失败: $skill_name（目标目录不可写）"
     done
 fi
 
