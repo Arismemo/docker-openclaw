@@ -38,6 +38,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     chromium \
+    # 中文字体（解决 Chromium 截图中文显示为方块）
+    fonts-noto-cjk \
     # session-logs 技能
     jq \
     ripgrep \
