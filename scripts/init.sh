@@ -195,6 +195,11 @@ try {
     c.plugins.entries.feishu.enabled = true;
     console.log('   ✅ 飞书插件已启用');
   }
+
+  // 删除 sandbox 和 subagents 配置（容器内没有 docker 命令，会导致 crash）
+  if (c.agents?.defaults?.sandbox) { delete c.agents.defaults.sandbox; console.log('   🗑️ 已移除 sandbox 配置'); }
+  if (c.agents?.defaults?.subagents) { delete c.agents.defaults.subagents; console.log('   🗑️ 已移除 subagents 配置'); }
+
   fs.writeFileSync(f, JSON.stringify(c, null, 2));
 } catch(e) { console.error('配置修复失败:', e.message); }
 " 2>/dev/null || true
