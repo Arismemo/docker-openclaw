@@ -147,32 +147,24 @@ if [ -f "$FEISHU_MEDIA" ]; then
 fi
 
 # 确保启动配置正确（gateway + 飞书凭据 + 插件）
-# 从持久化的 .env 读取凭据，防止 openclaw.json 中凭据丢失或被占位符覆盖
+# 从容器环境变量读取凭据，注入到 openclaw.json 中（防止占位符覆盖真实凭据）
 node -e "
 const fs = require('fs');
-const path = require('path');
 const f = '$HOME/.openclaw/openclaw.json';
 try {
   const c = JSON.parse(fs.readFileSync(f, 'utf-8'));
+  const env = process.env;
 
-  // 从 .env 读取凭据（admin 面板写入的持久化文件）
-  const envFile = path.join(path.dirname(f), '..', '.env');
-  const env = {};
-  try {
-    fs.readFileSync(envFile, 'utf-8').split('\\n').forEach(line => {
-      const [k, ...v] = line.split('=');
-      if (k && v.length) env[k.trim()] = v.join('=').trim();
-    });
-  } catch {}
-
-  // 注入飞书凭据（替换占位符或空值）
-  if (env.FEISHU_APP_ID && c.channels?.feishu) {
+  // 注入飞书凭据（环境变量优先，替换占位符或空值）
+  if (env.FEISHU_APP_ID) {
+    if (!c.channels) c.channels = {};
+    if (!c.channels.feishu) c.channels.feishu = { enabled: true };
     const ch = c.channels.feishu;
     if (!ch.appId || ch.appId.includes('PLACEHOLDER')) {
       ch.appId = env.FEISHU_APP_ID;
       ch.appSecret = env.FEISHU_APP_SECRET || '';
       ch.domain = env.FEISHU_DOMAIN || 'feishu';
-      console.log('   🔑 飞书凭据已从 .env 注入');
+      console.log('   🔑 飞书凭据已从环境变量注入');
     }
   }
 
@@ -180,7 +172,13 @@ try {
   if (env.ZHIPU_API_KEY && c.models?.providers?.zhipu) {
     if (!c.models.providers.zhipu.apiKey || c.models.providers.zhipu.apiKey.includes('PLACEHOLDER')) {
       c.models.providers.zhipu.apiKey = env.ZHIPU_API_KEY;
-      console.log('   🔑 智谱 API Key 已从 .env 注入');
+      console.log('   🔑 智谱 API Key 已从环境变量注入');
+    }
+  }
+  if (env.GEMINI_API_KEY && c.models?.providers?.gemini) {
+    if (!c.models.providers.gemini.apiKey || c.models.providers.gemini.apiKey.includes('PLACEHOLDER')) {
+      c.models.providers.gemini.apiKey = env.GEMINI_API_KEY;
+      console.log('   🔑 Gemini API Key 已从环境变量注入');
     }
   }
 
@@ -190,7 +188,10 @@ try {
   c.gateway.bind = 'lan';
 
   // 确保飞书插件启用
-  if (c.plugins?.entries?.feishu && !c.plugins.entries.feishu.enabled) {
+  if (!c.plugins) c.plugins = { entries: {} };
+  if (!c.plugins.entries) c.plugins.entries = {};
+  if (!c.plugins.entries.feishu) c.plugins.entries.feishu = {};
+  if (!c.plugins.entries.feishu.enabled) {
     c.plugins.entries.feishu.enabled = true;
     console.log('   ✅ 飞书插件已启用');
   }
