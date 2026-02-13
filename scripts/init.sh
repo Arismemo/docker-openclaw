@@ -168,18 +168,52 @@ try {
     }
   }
 
-  // 注入 API Key（替换占位符）
-  if (env.ZHIPU_API_KEY && c.models?.providers?.zhipu) {
-    if (!c.models.providers.zhipu.apiKey || c.models.providers.zhipu.apiKey.includes('PLACEHOLDER')) {
+  // 注入模型配置和 API Key（防御性：如果 providers 丢失则重建）
+  if (env.ZHIPU_API_KEY) {
+    if (!c.models) c.models = {};
+    if (!c.models.providers) c.models.providers = {};
+    if (!c.models.providers.zhipu) {
+      // 模型配置丢失，用默认值重建
+      c.models.providers.zhipu = {
+        baseUrl: 'https://open.bigmodel.cn/api/coding/paas/v4',
+        apiKey: env.ZHIPU_API_KEY,
+        api: 'openai-completions',
+        models: [
+          { id: 'glm-5', name: 'GLM 5', contextWindow: 128000, maxTokens: 16384 },
+          { id: 'glm-4.7', name: 'GLM 4.7', contextWindow: 128000, maxTokens: 8192 }
+        ]
+      };
+      console.log('   🔧 智谱模型配置已重建');
+    } else if (!c.models.providers.zhipu.apiKey || c.models.providers.zhipu.apiKey.includes('PLACEHOLDER')) {
       c.models.providers.zhipu.apiKey = env.ZHIPU_API_KEY;
       console.log('   🔑 智谱 API Key 已从环境变量注入');
     }
   }
-  if (env.GEMINI_API_KEY && c.models?.providers?.gemini) {
-    if (!c.models.providers.gemini.apiKey || c.models.providers.gemini.apiKey.includes('PLACEHOLDER')) {
+  if (env.GEMINI_API_KEY) {
+    if (!c.models) c.models = {};
+    if (!c.models.providers) c.models.providers = {};
+    if (!c.models.providers.gemini) {
+      c.models.providers.gemini = {
+        baseUrl: 'https://gemini.709970.xyz/v1',
+        apiKey: env.GEMINI_API_KEY,
+        api: 'openai-completions',
+        models: [
+          { id: 'claude-opus-4-6-thinking', name: 'Claude Opus 4.6 Thinking', contextWindow: 200000, maxTokens: 16384 },
+          { id: 'gemini-3-pro-image', name: 'Gemini 3 Pro Image', contextWindow: 128000, maxTokens: 8192 }
+        ]
+      };
+      console.log('   🔧 Gemini 模型配置已重建');
+    } else if (!c.models.providers.gemini.apiKey || c.models.providers.gemini.apiKey.includes('PLACEHOLDER')) {
       c.models.providers.gemini.apiKey = env.GEMINI_API_KEY;
       console.log('   🔑 Gemini API Key 已从环境变量注入');
     }
+  }
+  // 确保 agent 默认模型配置存在
+  if (!c.agents) c.agents = { defaults: {} };
+  if (!c.agents.defaults) c.agents.defaults = {};
+  if (!c.agents.defaults.model) {
+    c.agents.defaults.model = { primary: 'zhipu/glm-5', fallbacks: ['zhipu/glm-4.7', 'gemini/claude-opus-4-6-thinking'] };
+    console.log('   🔧 Agent 默认模型配置已重建');
   }
 
   // gateway 必须为 local + lan

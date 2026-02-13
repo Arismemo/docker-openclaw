@@ -12,9 +12,6 @@
                 "primary": "gemini/gemini-3-pro-image"
             },
             "contextTokens": 128000,
-            "sandbox": {
-                "mode": "non-main"
-            },
             "memorySearch": {
                 "provider": "openai",
                 "model": "nomic-embed-text",

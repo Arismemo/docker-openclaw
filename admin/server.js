@@ -136,6 +136,30 @@ function parseSkillsTable(output) {
 
 const cname = (name) => `openclaw-${name}`;
 
+// 构建容器环境变量（统一入口，防止重复和遗漏）
+function buildContainerEnv(clientEnv = {}) {
+  const e = [];
+  // 代理配置
+  if (process.env.HTTP_PROXY) e.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
+  if (process.env.HTTPS_PROXY) e.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
+  if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY) {
+    const noproxy = '*.feishu.cn,*.larksuite.com,open.feishu.cn,open.bigmodel.cn,172.17.0.1,localhost,127.0.0.1';
+    e.push(`NO_PROXY=${noproxy}`, `no_proxy=${noproxy}`);
+  }
+  // Ollama embedding
+  e.push('OPENAI_BASE_URL=http://172.17.0.1:11434/v1', 'OPENAI_API_KEY=ollama');
+  // memU 记忆服务
+  e.push('MEMU_API_URL=http://172.17.0.1:8000');
+  // API Keys（admin 全局）
+  if (process.env.GEMINI_API_KEY) e.push(`GEMINI_API_KEY=${process.env.GEMINI_API_KEY}`);
+  // 客户级凭据（从 .env 透传，init.sh 会注入到 openclaw.json）
+  if (clientEnv.FEISHU_APP_ID) e.push(`FEISHU_APP_ID=${clientEnv.FEISHU_APP_ID}`);
+  if (clientEnv.FEISHU_APP_SECRET) e.push(`FEISHU_APP_SECRET=${clientEnv.FEISHU_APP_SECRET}`);
+  if (clientEnv.FEISHU_DOMAIN) e.push(`FEISHU_DOMAIN=${clientEnv.FEISHU_DOMAIN}`);
+  if (clientEnv.ZHIPU_API_KEY) e.push(`ZHIPU_API_KEY=${clientEnv.ZHIPU_API_KEY}`);
+  return e;
+}
+
 // 解析 .env 文件为对象
 async function parseEnv(filePath) {
   try {
@@ -546,13 +570,7 @@ app.post('/api/clients', async (req, res) => {
 
     // 创建并启动容器
     const hostDataPath = path.join(HOST_PROJECT_DIR, 'clients', name, 'data');
-    const containerEnv = [];
-    if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
-    if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
-    if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY) containerEnv.push('NO_PROXY=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1', 'no_proxy=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1');
-    containerEnv.push('OPENAI_BASE_URL=http://172.17.0.1:11434/v1', 'OPENAI_API_KEY=ollama');
-    containerEnv.push('MEMU_API_URL=http://172.17.0.1:8000');
-    if (process.env.GEMINI_API_KEY) containerEnv.push(`GEMINI_API_KEY=${process.env.GEMINI_API_KEY}`);
+    const containerEnv = buildContainerEnv({ FEISHU_APP_ID: feishuAppId, FEISHU_APP_SECRET: feishuAppSecret, FEISHU_DOMAIN: feishuDomain, ZHIPU_API_KEY: zhipuApiKey || apiKey });
     const container = await docker.createContainer({
       Image: OPENCLAW_IMAGE,
       name: cname(name),
@@ -705,13 +723,8 @@ app.post('/api/clients/import', upload.single('file'), async (req, res) => {
 
     // 创建并启动容器
     const hostDataPath = path.join(HOST_PROJECT_DIR, 'clients', newName, 'data');
-    const containerEnv = [];
-    if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
-    if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
-    if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY) containerEnv.push('NO_PROXY=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1', 'no_proxy=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1');
-    containerEnv.push('OPENAI_BASE_URL=http://172.17.0.1:11434/v1', 'OPENAI_API_KEY=ollama');
-    containerEnv.push('MEMU_API_URL=http://172.17.0.1:8000');
-    if (process.env.GEMINI_API_KEY) containerEnv.push(`GEMINI_API_KEY=${process.env.GEMINI_API_KEY}`);
+    const importEnv = existsSync(path.join(clientDir, '.env')) ? await parseEnv(path.join(clientDir, '.env')) : {};
+    const containerEnv = buildContainerEnv(importEnv);
     const container = await docker.createContainer({
       Image: OPENCLAW_IMAGE,
       name: cname(newName),
@@ -745,13 +758,7 @@ app.post('/api/clients/:name/start', async (req, res) => {
       // 容器不存在，重新创建
       const env = await parseEnv(path.join(CLIENTS_DIR, name, '.env'));
       const hostDataPath = path.join(HOST_PROJECT_DIR, 'clients', name, 'data');
-      const containerEnv = [];
-      if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
-      if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
-      if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY) containerEnv.push('NO_PROXY=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1', 'no_proxy=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1');
-      containerEnv.push('OPENAI_BASE_URL=http://172.17.0.1:11434/v1', 'OPENAI_API_KEY=ollama');
-      containerEnv.push('MEMU_API_URL=http://172.17.0.1:8000');
-      if (process.env.GEMINI_API_KEY) containerEnv.push(`GEMINI_API_KEY=${process.env.GEMINI_API_KEY}`);
+      const containerEnv = buildContainerEnv(env);
       const container = await docker.createContainer({
         Image: OPENCLAW_IMAGE,
         name: cname(name),
@@ -807,12 +814,7 @@ app.post('/api/clients/:name/upgrade', async (req, res) => {
 
     // 4. 用新镜像重建容器（memory-lancedb 配置由 init.sh 自动注入）
     const hostDataPath = path.join(HOST_PROJECT_DIR, 'clients', name, 'data');
-    const containerEnv = [];
-    if (process.env.HTTP_PROXY) containerEnv.push(`HTTP_PROXY=${process.env.HTTP_PROXY}`, `http_proxy=${process.env.HTTP_PROXY}`);
-    if (process.env.HTTPS_PROXY) containerEnv.push(`HTTPS_PROXY=${process.env.HTTPS_PROXY}`, `https_proxy=${process.env.HTTPS_PROXY}`);
-    if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY) containerEnv.push('NO_PROXY=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1', 'no_proxy=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1');
-    containerEnv.push('OPENAI_BASE_URL=http://172.17.0.1:11434/v1', 'OPENAI_API_KEY=ollama');
-    if (process.env.GEMINI_API_KEY) containerEnv.push(`GEMINI_API_KEY=${process.env.GEMINI_API_KEY}`);
+    const containerEnv = buildContainerEnv(env);
     const newContainer = await docker.createContainer({
       Image: OPENCLAW_IMAGE,
       name: cname(name),

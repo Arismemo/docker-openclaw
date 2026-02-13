@@ -34,7 +34,7 @@ services:
       - MODELS_FILE=/app/config/models.json
       - HTTP_PROXY=${HTTP_PROXY:-}
       - HTTPS_PROXY=${HTTPS_PROXY:-}
-      - NO_PROXY=*.feishu.cn,*.larksuite.com,open.feishu.cn,172.17.0.1,localhost,127.0.0.1
+      - NO_PROXY=*.feishu.cn,*.larksuite.com,open.feishu.cn,open.bigmodel.cn,172.17.0.1,localhost,127.0.0.1
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     restart: unless-stopped
 
@@ -62,6 +62,7 @@ services:
       - "5432:5432"
     volumes:
       - memu-postgres-data:/var/lib/postgresql/data
+      - ./config/memu-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
