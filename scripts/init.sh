@@ -237,7 +237,7 @@ while [ "$#" -gt 0 ]; do
     case "$1" in --user-id) USER_ID="$2"; shift 2 ;; --query) QUERY="$2"; shift 2 ;; *) shift ;; esac
 done
 [ -z "$QUERY" ] && echo "错误: 缺少 --query" >&2 && exit 1
-curl -s -m 15 -X POST "${MEMU_URL}/retrieve" -H "Content-Type: application/json" \
+curl -s -m 60 -X POST "${MEMU_URL}/retrieve" -H "Content-Type: application/json" \
     -d "{\"query\": \"$QUERY\", \"user\": {\"user_id\": \"${USER_ID:-default}\"}}"
 RETRIEVE_SCRIPT
 chmod +x "$MEMU_SCRIPTS_DIR/memu-retrieve.sh"
