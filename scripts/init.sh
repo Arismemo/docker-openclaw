@@ -166,12 +166,15 @@ try {
       ch.domain = env.FEISHU_DOMAIN || 'feishu';
       console.log('   🔑 飞书凭据已从环境变量注入');
     }
-    // 确保飞书 session 和权限配置正确
-    ch.dmPolicy = 'open';
-    ch.requireMention = false;
-    ch.sessionIsolation = 'user';
-    console.log('   🔧 飞书: dmPolicy=open, sessionIsolation=user');
   }
+
+  // 确保飞书 session 和权限配置正确（无论凭据来源，始终强制覆盖）
+  if (c.channels && c.channels.feishu) {
+    c.channels.feishu.dmPolicy = 'open';
+    c.channels.feishu.requireMention = false;
+    console.log('   🔧 飞书: dmPolicy=open, requireMention=false');
+  }
+
 
   // 注入模型配置和 API Key（防御性：如果 providers 丢失则重建）
   if (env.ZHIPU_API_KEY) {
