@@ -166,6 +166,20 @@ try {
       ch.domain = env.FEISHU_DOMAIN || 'feishu';
       console.log('   🔑 飞书凭据已从环境变量注入');
     }
+    // 确保飞书 session 和权限配置正确
+    ch.dmPolicy = 'open';
+    ch.requireMention = false;
+    ch.sessionIsolation = 'user';
+    console.log('   🔧 飞书: dmPolicy=open, sessionIsolation=user');
+  }
+
+  // 设置 Brave Search 默认搜索语言（zh-hans，避免 zh 导致的 422 错误）
+  if (!c.tools) c.tools = {};
+  if (!c.tools.web) c.tools.web = {};
+  if (!c.tools.web.search) c.tools.web.search = {};
+  if (!c.tools.web.search.searchLang) {
+    c.tools.web.search.searchLang = 'zh-hans';
+    console.log('   🔧 Brave Search: searchLang=zh-hans');
   }
 
   // 注入模型配置和 API Key（防御性：如果 providers 丢失则重建）

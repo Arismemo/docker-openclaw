@@ -79,9 +79,10 @@
             "appId": "FEISHU_APP_ID_PLACEHOLDER",
             "appSecret": "FEISHU_APP_SECRET_PLACEHOLDER",
             "domain": "FEISHU_DOMAIN_PLACEHOLDER",
-            "requireMention": true,
-            "dmPolicy": "pairing",
-            "groupPolicy": "allowlist"
+            "requireMention": false,
+            "dmPolicy": "open",
+            "groupPolicy": "allowlist",
+            "sessionIsolation": "user"
         }
     },
     "tools": {
@@ -91,7 +92,8 @@
                 "provider": "brave",
                 "apiKey": "BSAFolhsKnad6fTt6oJiSVS-jkSK300",
                 "maxResults": 10,
-                "timeoutSeconds": 30
+                "timeoutSeconds": 30,
+                "searchLang": "zh-hans"
             }
         }
     }
