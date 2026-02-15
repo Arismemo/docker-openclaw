@@ -92,8 +92,7 @@
                 "provider": "brave",
                 "apiKey": "BSAFolhsKnad6fTt6oJiSVS-jkSK300",
                 "maxResults": 10,
-                "timeoutSeconds": 30,
-                "searchLang": "zh-hans"
+                "timeoutSeconds": 30
             }
         }
     }

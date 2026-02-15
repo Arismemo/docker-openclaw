@@ -173,15 +173,6 @@ try {
     console.log('   🔧 飞书: dmPolicy=open, sessionIsolation=user');
   }
 
-  // 设置 Brave Search 默认搜索语言（zh-hans，避免 zh 导致的 422 错误）
-  if (!c.tools) c.tools = {};
-  if (!c.tools.web) c.tools.web = {};
-  if (!c.tools.web.search) c.tools.web.search = {};
-  if (!c.tools.web.search.searchLang) {
-    c.tools.web.search.searchLang = 'zh-hans';
-    console.log('   🔧 Brave Search: searchLang=zh-hans');
-  }
-
   // 注入模型配置和 API Key（防御性：如果 providers 丢失则重建）
   if (env.ZHIPU_API_KEY) {
     if (!c.models) c.models = {};
@@ -327,6 +318,16 @@ curl -s -m 60 -X POST "${MEMU_URL}/retrieve" -H "Content-Type: application/json"
 RETRIEVE_SCRIPT
 chmod +x "$MEMU_SCRIPTS_DIR/memu-retrieve.sh"
 echo "📦 memU 脚本已安装到 $MEMU_SCRIPTS_DIR"
+
+# 确保 SOUL.md 包含搜索语言指引
+if [ -f "$SOUL_FILE" ] && ! grep -q 'zh-hans' "$SOUL_FILE"; then
+    cat >> "$SOUL_FILE" << 'SEARCH_EOF'
+
+### 网络搜索注意事项
+调用 web_search 工具时，**必须**将 `search_lang` 参数设为 `zh-hans`（不要用 `zh`，Brave API 不支持），否则会返回 422 错误。
+SEARCH_EOF
+    echo "📝 SOUL.md: 已添加搜索语言指引"
+fi
 
 # 确保 SOUL.md 包含 memU 记忆系统指引
 if [ -f "$SOUL_FILE" ] && ! grep -q 'memu' "$SOUL_FILE"; then
